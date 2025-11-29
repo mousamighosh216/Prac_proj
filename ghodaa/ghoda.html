@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Knight's Tour - Graph Visualization</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            background-color: #000000;
+        }
+
+        .container {
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 760px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #ffffff;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 20px;
+            font-size: 14px;
+            font-style: italic;
+        }
+
+        .board-container {
+            position: relative;
+            margin: 20px auto;
+            width: 560px;
+            aspect-ratio: 1;
+            background: #000000;
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .grid-lines {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            bottom: 20px;
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+            pointer-events: none;
+        }
+
+        .grid-cell {
+            border: 1px solid rgb(255, 251, 219);
+        }
+
+        canvas {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            pointer-events: none;
+        }
+
+        .dots-container {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            bottom: 20px;
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+        }
+
+        .dot {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 14px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            background: #667eea;
+            color: white;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(255, 254, 254, 0.1);
+        }
+
+        button:hover:not(:disabled) {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .info {
+            text-align: center;
+            margin-bottom: 15px;
+            font-size: 16px;
+            color: #555;
+        }
+
+        .speed-control {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            color: #555;
+        }
+
+        .speed-control label {
+            font-weight: 600;
+            color: #555;
+        }
+
+        .speed-control input {
+            width: 150px;
+        }
+
+
+        .status {
+            text-align: center;
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .status.warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Knight's Tour Visualizer</h1>
+        <div class="subtitle">Warnsdorff's Heuristic + Backtracking</div>
+        
+        <div class="speed-control">
+            <label for="speed">Speed:</label>
+            <input type="range" id="speed" min="1" max="200" value="50" step="1">
+            <span id="speedValue">50ms</span>
+        </div>
+
+        <div class="controls">
+            <button id="startBtn">Start Tour</button>
+            <button id="stopBtn" disabled>Stop</button>
+            <button id="resetBtn">Reset</button>
+        </div>
+
+        <div id="status" class="status info" style="display: block;">
+            Click any dot to set starting position, then click Start Tour
+        </div>
+
+        <div class="board-container">
+            <div class="grid-lines" id="gridLines"></div>
+            <canvas id="pathCanvas"></canvas>
+            <div class="dots-container" id="dotsContainer"></div>
+        </div>
+
+        
+    </div>
+
+    <script>
+        const BOARD_SIZE = 8;
+        const KNIGHT_MOVES = [
+            [-2, -1], [-2, 1], [-1, -2], [-1, 2],
+            [1, -2], [1, 2], [2, -1], [2, 1]
+        ];
+
+        let board = [];
+        let startPos = { row: 0, col: 0 };
+        let isRunning = false;
+        let shouldStop = false;
+        let speed = 50;
+        let moveCount = 0;
+        let attemptCount = 0;
+        let path = [];
+        let canvas, ctx;
+
+        function initBoard() {
+            const gridLines = document.getElementById('gridLines');
+            gridLines.innerHTML = '';
+            for (let i = 0; i < 64; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'grid-cell';
+                gridLines.appendChild(cell);
+            }
+
+            const dotsContainer = document.getElementById('dotsContainer');
+            dotsContainer.innerHTML = '';
+            board = Array(BOARD_SIZE).fill().map(() => Array(BOARD_SIZE).fill(-1));
+
+            for (let row = 0; row < BOARD_SIZE; row++) {
+                for (let col = 0; col < BOARD_SIZE; col++) {
+                    const dot = document.createElement('div');
+                    dot.className = 'dot';
+                    dot.dataset.row = row;
+                    dot.dataset.col = col;
+                    
+                    const circle = document.createElement('div');
+                    circle.className = 'dot-circle';
+                    dot.appendChild(circle);
+                    
+                    dot.addEventListener('click', () => {
+                        if (!isRunning) {
+                            setStartPosition(row, col);
+                        }
+                    });
+                    
+                    dotsContainer.appendChild(dot);
+                }
+            }
+
+            const container = document.querySelector('.board-container');
+            canvas = document.getElementById('pathCanvas');
+            const size = container.clientWidth-40
+            canvas.width = size;
+            canvas.height = size;
+            ctx = canvas.getContext('2d');
+        }
+
+        function setStartPosition (row, col) {
+            startPos = { row, col };
+            updateStatus(`Starting position set to (${row}, ${col})`, 'info');
+        }
+
+        function isValid(row, col) {
+            return row >= 0 && row < BOARD_SIZE && 
+                   col >= 0 && col < BOARD_SIZE && 
+                   board[row][col] === -1;
+        }
+
+        function countOnwardMoves(row, col) {
+            let count = 0;
+            for (const [dr, dc] of KNIGHT_MOVES) {
+                const newRow = row + dr;
+                const newCol = col + dc;
+                if (isValid(newRow, newCol)) {
+                    count++;
+                }
+            }
+            return count;
+        }
+
+        function getValidMovesWithDegree(row, col) {
+            const moves = [];
+            for (const [dr, dc] of KNIGHT_MOVES) {
+                const newRow = row + dr;
+                const newCol = col + dc;
+                if (isValid(newRow, newCol)) {
+                    const degree = countOnwardMoves(newRow, newCol);
+                    moves.push({ row: newRow, col: newCol, degree });
+                }
+            }
+            moves.sort((a, b) => a.degree - b.degree);
+            return moves;
+        }
+
+        function getDotPosition(row, col) {
+            const cellSize = canvas.width / BOARD_SIZE;
+            return {
+                x: col * cellSize + cellSize / 2,
+                y: row * cellSize + cellSize / 2
+            };
+        }
+
+        function drawPath() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            if (path.length < 2) return;
+
+            for (let i = 0; i < path.length - 1; i++) {
+                const from = getDotPosition(path[i].row, path[i].col);
+                const to = getDotPosition(path[i + 1].row, path[i + 1].col);
+                
+                const gradient = ctx.createLinearGradient(from.x, from.y, to.x, to.y);
+                gradient.addColorStop(0, '#eacc46');
+                gradient.addColorStop(1, '#eacc50');
+                
+                ctx.strokeStyle = gradient;
+                ctx.lineWidth = 3;
+                ctx.lineCap = 'round';
+                ctx.shadowColor = 'rgba(76, 175, 80, 0.5)';
+                ctx.shadowBlur = 8;
+                
+                ctx.beginPath();
+                ctx.moveTo(from.x, from.y);
+                ctx.lineTo(to.x, to.y);
+                ctx.stroke();
+            }
+            
+            ctx.shadowBlur = 0;
+        }
+
+        function updateDot(row, col, state, value = '') {
+            const dot = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+            if (!dot) return;
+            
+            const circle = dot.querySelector('.dot-circle');
+            dot.className = 'dot';
+            
+            if (state === 'current') {
+                dot.classList.add('current');
+            } else if (state === 'visited') {
+                dot.classList.add('visited');
+            } else {
+                circle.textContent = '';
+            }
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        async function solveKnightTourHybrid(row, col, moveNum) {
+            if (shouldStop) return false;
+
+            attemptCount++;
+    
+            board[row][col] = moveNum;
+            moveCount = moveNum;
+            path.push({ row, col });
+            
+            updateDot(row, col, 'current', moveNum);
+            drawPath();
+            await sleep(speed);
+
+            if (moveNum === BOARD_SIZE * BOARD_SIZE) {
+                updateDot(row, col, 'visited', moveNum);
+                return true;
+            }
+
+            const validMoves = getValidMovesWithDegree(row, col);
+
+            for (let i = 0; i < validMoves.length; i++) {
+                if (shouldStop) return false;
+                
+                const move = validMoves[i];
+                
+                if (await solveKnightTourHybrid(move.row, move.col, moveNum + 1)) {
+                    updateDot(row, col, 'visited', moveNum);
+                    return true;
+                }
+            }
+
+            board[row][col] = -1;
+            moveCount = moveNum - 1;
+            path.pop();
+            
+            updateDot(row, col, null);
+            drawPath();
+            await sleep(speed);
+
+            return false;
+        }
+
+        function updateStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.style.display = 'block';
+        }
+
+        document.getElementById('startBtn').addEventListener('click', async () => {
+            if (isRunning) return;
+
+            isRunning = true;
+            shouldStop = false;
+            moveCount = 0;
+            attemptCount = 0;
+            path = [];
+
+            board = Array(BOARD_SIZE).fill().map(() => Array(BOARD_SIZE).fill(-1));
+            for (let row = 0; row < BOARD_SIZE; row++) {
+                for (let col = 0; col < BOARD_SIZE; col++) {
+                    updateDot(row, col, null);
+                }
+            }
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('stopBtn').disabled = false;
+
+            const success = await solveKnightTourHybrid(startPos.row, startPos.col, 1);
+
+            isRunning = false;
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+        });
+
+        document.getElementById('stopBtn').addEventListener('click', () => {
+            shouldStop = true;
+            updateStatus('Stopping...', 'warning');
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            shouldStop = true;
+            isRunning = false;
+            moveCount = 0;
+            attemptCount = 0;
+            path = [];
+            initBoard();
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+            updateStatus('Board reset. Click any dot to set starting position', 'info');
+        });
+
+        document.getElementById('speed').addEventListener('input', (e) => {
+            speed = 200 - parseInt(e.target.value);
+            document.getElementById('speedValue').textContent = speed + 'ms';
+        });
+
+        initBoard();
+    </script>
+</body>
+</html>
