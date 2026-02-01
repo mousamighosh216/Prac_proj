@@ -1,0 +1,44 @@
+[
+	{
+		"id": "101",
+		"product": "Cadbury Moose",
+		"company": "Cadbury",
+		"qty": 4
+	},
+	{
+		"id": "102",
+		"product": "Cadbury Dairy Milk",
+		"company": "Cadbury",
+		"qty": 10
+	},
+	{
+		"id": "103",
+		"product": "Nestlé KitKat",
+		"company": "Nestlé",
+		"qty": 8
+	},
+	{
+		"id": "104",
+		"product": "Ferrero Rocher",
+		"company": "Ferrero",
+		"qty": 12
+	},
+	{
+		"id": "105",
+		"product": "Lindt Lindor",
+		"company": "Lindt",
+		"qty": 6
+	},
+	{
+		"id": "106",
+		"product": "Godiva Chocolate",
+		"company": "Godiva",
+		"qty": 4
+	},
+	{
+		"id": "110",
+		"product": "Cadbury Gemes",
+		"company": "Cadbury",
+		"qty": 16
+	}
+]
