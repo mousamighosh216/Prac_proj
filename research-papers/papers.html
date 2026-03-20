@@ -1,0 +1,1935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>System Design Research Hub — 18 Case Studies</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=JetBrains+Mono:wght@300;400;500&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c10;
+    --surface: #111318;
+    --card: #161a22;
+    --border: #1e2432;
+    --accent: #d4a843;
+    --accent2: #5b8dd9;
+    --accent3: #7ec89e;
+    --accent4: #c47fa0;
+    --text: #e8e4d8;
+    --muted: #7a7d8a;
+    --tag-bg: #1a1f2e;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Lato', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: linear-gradient(135deg, #0d1117 0%, #111820 50%, #0e1520 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 60px 40px 50px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  header::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 70% 60% at 50% 0%, rgba(212,168,67,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  header::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.015'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    pointer-events: none;
+  }
+  .header-badge {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--accent);
+    border: 1px solid rgba(212,168,67,0.3);
+    padding: 5px 14px;
+    border-radius: 2px;
+    margin-bottom: 20px;
+    background: rgba(212,168,67,0.05);
+    position: relative;
+    z-index: 1;
+  }
+  header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2.2rem, 5vw, 3.8rem);
+    font-weight: 900;
+    color: #fff;
+    line-height: 1.15;
+    position: relative;
+    z-index: 1;
+  }
+  header h1 em {
+    color: var(--accent);
+    font-style: italic;
+  }
+  header p.sub {
+    color: var(--muted);
+    font-size: 15px;
+    margin-top: 14px;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+    font-weight: 300;
+    position: relative;
+    z-index: 1;
+  }
+  .stats-row {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    margin-top: 36px;
+    position: relative;
+    z-index: 1;
+    flex-wrap: wrap;
+  }
+  .stat {
+    text-align: center;
+  }
+  .stat-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--accent);
+  }
+  .stat-label {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* ── NAV ── */
+  nav {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 40px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  nav::-webkit-scrollbar { display: none; }
+  .nav-btn {
+    flex-shrink: 0;
+    padding: 14px 18px;
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    white-space: nowrap;
+    background: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+  }
+  .nav-btn:hover, .nav-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  /* ── MAIN LAYOUT ── */
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 50px 24px 80px;
+  }
+
+  /* ── SECTION ── */
+  .section {
+    display: none;
+    animation: fadeIn 0.3s ease;
+  }
+  .section.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ── TOPIC CARD ── */
+  .topic-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    margin-bottom: 32px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .topic-card:hover { border-color: rgba(212,168,67,0.3); }
+  .topic-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    padding: 24px 28px 20px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+  }
+  .topic-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.2rem;
+    font-weight: 900;
+    color: var(--border);
+    line-height: 1;
+    min-width: 48px;
+    padding-top: 3px;
+  }
+  .topic-title-wrap h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.3;
+  }
+  .topic-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+  }
+  .tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 2px;
+    letter-spacing: 0.5px;
+  }
+  .tag-blue { background: rgba(91,141,217,0.15); color: var(--accent2); border: 1px solid rgba(91,141,217,0.25); }
+  .tag-gold { background: rgba(212,168,67,0.12); color: var(--accent); border: 1px solid rgba(212,168,67,0.25); }
+  .tag-green { background: rgba(126,200,158,0.12); color: var(--accent3); border: 1px solid rgba(126,200,158,0.25); }
+  .tag-pink { background: rgba(196,127,160,0.12); color: var(--accent4); border: 1px solid rgba(196,127,160,0.25); }
+  .expand-icon {
+    margin-left: auto;
+    color: var(--muted);
+    font-size: 18px;
+    transition: transform 0.3s;
+    min-width: 20px;
+    text-align: center;
+  }
+  .topic-card.open .expand-icon { transform: rotate(180deg); }
+
+  .topic-body {
+    display: none;
+    padding: 28px;
+  }
+  .topic-card.open .topic-body { display: block; }
+
+  /* ── BODY SECTIONS ── */
+  .body-section {
+    margin-bottom: 28px;
+  }
+  .body-section h3 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .body-section p {
+    color: #b8b4aa;
+    font-size: 14.5px;
+    line-height: 1.8;
+    margin-bottom: 10px;
+  }
+
+  /* ── PAPER LIST ── */
+  .paper-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .paper-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent2);
+    border-radius: 3px;
+    padding: 14px 16px;
+  }
+  .paper-item.green { border-left-color: var(--accent3); }
+  .paper-item.gold { border-left-color: var(--accent); }
+  .paper-item.pink { border-left-color: var(--accent4); }
+  .paper-title {
+    font-weight: 700;
+    font-size: 13.5px;
+    color: #ddd;
+    margin-bottom: 4px;
+  }
+  .paper-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .paper-desc {
+    font-size: 13px;
+    color: #9096a4;
+    line-height: 1.6;
+  }
+  .paper-link {
+    display: inline-block;
+    margin-top: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--accent2);
+    text-decoration: none;
+    border-bottom: 1px solid rgba(91,141,217,0.3);
+    transition: color 0.2s;
+  }
+  .paper-link:hover { color: #8ab3f0; }
+
+  /* ── ARCH GRID ── */
+  .arch-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+  }
+  .arch-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 12px 14px;
+  }
+  .arch-item-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .arch-item-value {
+    font-size: 13px;
+    color: #c8c4bc;
+    font-weight: 500;
+  }
+
+  /* ── KEY INSIGHT BOX ── */
+  .insight-box {
+    background: rgba(212,168,67,0.06);
+    border: 1px solid rgba(212,168,67,0.2);
+    border-radius: 3px;
+    padding: 16px 20px;
+    margin-bottom: 12px;
+  }
+  .insight-box p {
+    font-size: 13.5px;
+    color: #c8b97a;
+    font-style: italic;
+    margin: 0;
+  }
+
+  /* ── OVERVIEW GRID ── */
+  .overview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+  .ov-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .ov-card:hover {
+    border-color: rgba(212,168,67,0.4);
+    background: #1a1e28;
+    transform: translateY(-2px);
+  }
+  .ov-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.6rem;
+    font-weight: 900;
+    color: var(--border);
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+  .ov-title {
+    font-weight: 700;
+    font-size: 14px;
+    color: #e0ddd4;
+    margin-bottom: 6px;
+  }
+  .ov-desc {
+    font-size: 12.5px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    text-align: center;
+    padding: 40px;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+  }
+
+  /* ── SEARCH ── */
+  .search-wrap {
+    position: relative;
+    margin-bottom: 36px;
+  }
+  .search-input {
+    width: 100%;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 14px 20px 14px 48px;
+    color: var(--text);
+    font-size: 15px;
+    font-family: 'Lato', sans-serif;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .search-input::placeholder { color: var(--muted); }
+  .search-input:focus { border-color: rgba(212,168,67,0.4); }
+  .search-icon {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    font-size: 18px;
+  }
+
+  /* responsive */
+  @media (max-width: 600px) {
+    header { padding: 40px 20px 36px; }
+    main { padding: 30px 16px 60px; }
+    .topic-header { padding: 18px 18px 14px; gap: 14px; }
+    .topic-body { padding: 18px; }
+    .topic-num { font-size: 1.6rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-badge">SYSTEM DESIGN · RESEARCH REFERENCE</div>
+  <h1>18 Case Studies for<br><em>Software Engineers</em></h1>
+  <p class="sub">Research papers, architecture deep-dives, and academic resources for every major system design topic — plus distributed database systems.</p>
+  <div class="stats-row">
+    <div class="stat"><div class="stat-num">18</div><div class="stat-label">Case Studies</div></div>
+    <div class="stat"><div class="stat-num">80+</div><div class="stat-label">Research Papers</div></div>
+    <div class="stat"><div class="stat-num">19</div><div class="stat-label">Topic Areas</div></div>
+    <div class="stat"><div class="stat-num">∞</div><div class="stat-label">Learning Depth</div></div>
+  </div>
+</header>
+
+<nav>
+  <button class="nav-btn active" onclick="showSection('overview')">Overview</button>
+  <button class="nav-btn" onclick="showSection('messaging')">Messaging & Streaming</button>
+  <button class="nav-btn" onclick="showSection('storage')">Storage & DB</button>
+  <button class="nav-btn" onclick="showSection('platforms')">Platforms & Apps</button>
+  <button class="nav-btn" onclick="showSection('infra')">Infrastructure & Scale</button>
+  <button class="nav-btn" onclick="showSection('distributed')">Distributed Systems</button>
+  <button class="nav-btn" onclick="showSection('all')">All Topics</button>
+</nav>
+
+<main>
+
+<!-- ───────────────── OVERVIEW ───────────────── -->
+<div class="section active" id="section-overview">
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input class="search-input" id="searchBox" placeholder="Search topics, papers, technologies..." oninput="filterCards()">
+  </div>
+  <div class="overview-grid" id="overviewGrid">
+    <div class="ov-card" onclick="goToTopic('url-shortener')"><div class="ov-num">01</div><div class="ov-title">URL Shortener</div><div class="ov-desc">Hashing, consistent hashing, key-value storage at scale</div></div>
+    <div class="ov-card" onclick="goToTopic('meta-serverless')"><div class="ov-num">02</div><div class="ov-title">Meta Serverless (11.5M calls/sec)</div><div class="ov-desc">Serverless architectures, FaaS, cold-start optimization</div></div>
+    <div class="ov-card" onclick="goToTopic('google-docs')"><div class="ov-num">03</div><div class="ov-title">Google Docs</div><div class="ov-desc">OT, CRDTs, collaborative editing, real-time sync</div></div>
+    <div class="ov-card" onclick="goToTopic('kafka')"><div class="ov-num">04</div><div class="ov-title">Apache Kafka</div><div class="ov-desc">Distributed log, pub-sub, stream processing</div></div>
+    <div class="ov-card" onclick="goToTopic('stock-exchange')"><div class="ov-num">05</div><div class="ov-title">Stock Exchange</div><div class="ov-desc">Order matching engines, ultra-low latency, financial systems</div></div>
+    <div class="ov-card" onclick="goToTopic('uber')"><div class="ov-num">06</div><div class="ov-title">Uber Driver Matching</div><div class="ov-desc">Geospatial indexing, S2 cells, 1M req/sec</div></div>
+    <div class="ov-card" onclick="goToTopic('reddit')"><div class="ov-num">07</div><div class="ov-title">Reddit</div><div class="ov-desc">Vote aggregation, hot rankings, feed generation at scale</div></div>
+    <div class="ov-card" onclick="goToTopic('tinder')"><div class="ov-num">08</div><div class="ov-title">Tinder</div><div class="ov-desc">Geo-based matching, swipe mechanics, recommendation systems</div></div>
+    <div class="ov-card" onclick="goToTopic('spotify')"><div class="ov-num">09</div><div class="ov-title">Spotify</div><div class="ov-desc">CDN for audio, recommendation ML, Backstage architecture</div></div>
+    <div class="ov-card" onclick="goToTopic('whatsapp')"><div class="ov-num">10</div><div class="ov-title">WhatsApp</div><div class="ov-desc">Erlang/OTP, end-to-end encryption, 50B messages/day</div></div>
+    <div class="ov-card" onclick="goToTopic('bluesky')"><div class="ov-num">11</div><div class="ov-title">Bluesky</div><div class="ov-desc">AT Protocol, federated social, decentralized identity</div></div>
+    <div class="ov-card" onclick="goToTopic('slack')"><div class="ov-num">12</div><div class="ov-title">Slack</div><div class="ov-desc">WebSockets, channel fan-out, search at scale</div></div>
+    <div class="ov-card" onclick="goToTopic('stripe')"><div class="ov-num">13</div><div class="ov-title">Stripe Idempotent API</div><div class="ov-desc">Exactly-once payments, idempotency keys, distributed transactions</div></div>
+    <div class="ov-card" onclick="goToTopic('chatgpt')"><div class="ov-num">14</div><div class="ov-title">ChatGPT</div><div class="ov-desc">Transformer inference, token streaming, GPU orchestration</div></div>
+    <div class="ov-card" onclick="goToTopic('twitter')"><div class="ov-num">15</div><div class="ov-title">Twitter Timeline</div><div class="ov-desc">Fan-out on write vs read, celebrity problem, caching</div></div>
+    <div class="ov-card" onclick="goToTopic('s3')"><div class="ov-num">16</div><div class="ov-title">Amazon S3</div><div class="ov-desc">Object storage, erasure coding, 11 nines durability</div></div>
+    <div class="ov-card" onclick="goToTopic('youtube')"><div class="ov-num">17</div><div class="ov-title">YouTube & MySQL (2.49B users)</div><div class="ov-desc">Vitess, sharding, video transcoding pipeline</div></div>
+    <div class="ov-card" onclick="goToTopic('aws-scale')"><div class="ov-num">18</div><div class="ov-title">Scale to 10M Users on AWS</div><div class="ov-desc">Auto-scaling, CDN, load balancing, database tiers</div></div>
+    <div class="ov-card" onclick="goToTopic('distributed')" style="border-color:rgba(212,168,67,0.25);"><div class="ov-num" style="color:rgba(212,168,67,0.3);">★</div><div class="ov-title" style="color:var(--accent);">Distributed DB Systems</div><div class="ov-desc">GFS, Dynamo, Spanner, Bigtable, Raft, CRDT, consensus</div></div>
+  </div>
+</div>
+
+<!-- ───────────────── ALL TOPICS ───────────────── -->
+<div class="section" id="section-all">
+
+  <!-- 01 URL Shortener -->
+  <div class="topic-card" id="url-shortener">
+    <div class="topic-header" onclick="toggleCard(this)">
+      <div class="topic-num">01</div>
+      <div class="topic-title-wrap">
+        <h2>How URL Shortener Works</h2>
+        <div class="topic-tags">
+          <span class="tag tag-blue">Hashing</span>
+          <span class="tag tag-green">Key-Value Store</span>
+          <span class="tag tag-gold">Consistent Hashing</span>
+          <span class="tag tag-blue">Redirection</span>
+        </div>
+      </div>
+      <div class="expand-icon">▾</div>
+    </div>
+    <div class="topic-body">
+      <div class="body-section">
+        <h3>System Overview</h3>
+        <p>A URL shortener converts long URLs into short slugs (6–8 characters), stores the mapping in a fast key-value store, and redirects HTTP 301/302 on lookup. Core challenges include generating unique short codes at high write throughput, distributing the lookup globally with low latency (sub-10ms), and handling 100:1 read/write ratios at scale.</p>
+        <div class="arch-grid">
+          <div class="arch-item"><div class="arch-item-label">Encoding</div><div class="arch-item-value">Base62 (a-z, A-Z, 0-9)</div></div>
+          <div class="arch-item"><div class="arch-item-label">Short Code Length</div><div class="arch-item-value">7 chars = 3.5 trillion URLs</div></div>
+          <div class="arch-item"><div class="arch-item-label">Redirect Type</div><div class="arch-item-value">301 (permanent) vs 302</div></div>
+          <div class="arch-item"><div class="arch-item-label">Storage</div><div class="arch-item-value">Cassandra / DynamoDB / Redis</div></div>
+          <div class="arch-item"><div class="arch-item-label">ID Generation</div><div class="arch-item-value">Snowflake / ZooKeeper range</div></div>
+          <div class="arch-item"><div class="arch-item-label">Write Rate</div><div class="arch-item-value">~100M new URLs/day (bit.ly)</div></div>
+        </div>
+      </div>
+      <div class="body-section">
+        <h3>Key Design Decisions</h3>
+        <div class="insight-box"><p>301 vs 302 Redirect: 301 (permanent) is cached by browsers, reducing load on servers but breaking analytics. 302 (temporary) routes every request through your servers, enabling click tracking but increasing server load.</p></div>
+        <p><strong>Approach 1 — Counter-based:</strong> Use a global distributed counter (ZooKeeper, Redis INCR), convert to Base62. Simple but requires coordination. <br>
+        <strong>Approach 2 — Hash-based:</strong> MD5/SHA-256 the long URL, take first 7 chars. Risk of collision requires birthday problem mitigation. <br>
+        <strong>Approach 3 — Snowflake ID:</strong> 64-bit ID from datacenter + machine + timestamp + sequence. Decentralized, collision-free, sortable.</p>
+      </div>
+      <div class="body-section">
+        <h3>Research Papers & Key Resources</h3>
+        <div class="paper-list">
+          <div class="paper-item gold">
+            <div class="paper-title">Consistent Hashing and Random Trees</div>
+            <div class="paper-meta">Karger et al. · MIT · STOC 1997</div>
+            <div class="paper-desc">Foundation for how to distribute URL keys across nodes with minimal remapping when nodes join/leave. Directly applicable to sharding URL stores. Introduced the concept of virtual nodes on a ring.</div>
+            <a class="paper-link" href="https://dl.acm.org/doi/10.1145/258533.258660" target="_blank">→ ACM DL</a>
+          </div>
+          <div class="paper-item">
+            <div class="paper-title">Chord: A Scalable Peer-to-peer Lookup Service</div>
+            <div class="paper-meta">Stoica et al. · MIT · SIGCOMM 2001</div>
+            <div class="paper-desc">Distributed hash table used to map URL keys to storage nodes. O(log N) lookups. Heavily cited in distributed key-value design for URL shorteners.</div>
+            <a class="paper-link" href="https://pdos.csail.mit.edu/papers/chord:sigcomm01/chord_sigcomm.pdf" target="_blank">→ Free PDF</a>
+          </div>
+          <div class="paper-item green">
+            <div class="paper-title">Dynamo: Amazon's Highly Available Key-Value Store</div>
+            <div class="paper-meta">DeCandia et al. · Amazon · SOSP 2007</div>
+            <div class="paper-desc">The blueprint for key-value stores used in URL shortening backends. Covers consistent hashing, vector clocks, and eventual consistency — exactly what large-scale URL systems use.</div>
+            <a class="paper-link" href="https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf" target="_blank">→ Free PDF</a>
+          </div>
+          <div class="paper-item">
+            <div class="paper-title">Snowflake: A Distributed Unique ID Generator</div>
+            <div class="paper-meta">Twitter Engineering Blog · 2010</div>
+            <div class="paper-desc">The canonical approach to generating unique, roughly sortable 64-bit IDs without coordination, used in many URL shortener ID generation strategies.</div>
+            <a class="paper-link" href="https://blog.twitter.com/engineering/en_us/a/2010/announcing-snowflake" target="_blank">→ Twitter Blog</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 02 Meta Serverless -->
+  <div class="topic-card" id="meta-serverless">
+    <div class="topic-header" onclick="toggleCard(this)">
+      <div class="topic-num">02</div>
+      <div class="topic-title-wrap">
+        <h2>How Meta Handles 11.5 Million Serverless Function Calls per Second</h2>
+        <div class="topic-tags">
+          <span class="tag tag-pink">FaaS</span>
+          <span class="tag tag-blue">Serverless</span>
+          <span class="tag tag-gold">Cold Start</span>
+          <span class="tag tag-green">Edge Computing</span>
+        </div>
+      </div>
+      <div class="expand-icon">▾</div>
+    </div>
+    <div class="topic-body">
+      <div class="body-section">
+        <h3>System Overview</h3>
+        <p>Meta's serverless platform (used for content ranking, ads, and feed computation) runs thousands of isolated function workers, each responding to event triggers. At 11.5M calls/second they need microsecond-level cold starts, automatic scaling, fault isolation, and efficient bin-packing of compute resources. Meta's internal FaaS differs from AWS Lambda in that it uses persistent warm workers and aggressive pre-warming based on traffic prediction.</p>
+        <div class="arch-grid">
+          <div class="arch-item"><div class="arch-item-label">Function Calls/sec</div><div class="arch-item-value">11.5 Million</div></div>
+          <div class="arch-item"><div class="arch-item-label">Runtime</div><div class="arch-item-value">Hack (PHP-derived), Python</div></div>
+          <div class="arch-item"><div class="arch-item-label">Isolation</div><div class="arch-item-value">Container + cgroups</div></div>
+          <div class="arch-item"><div class="arch-item-label">Scheduling</div><div class="arch-item-value">Tupperware (internal)</div></div>
+        </div>
+      </div>
+      <div class="body-section">
+        <h3>Key Insight: The Cold Start Problem</h3>
+        <div class="insight-box"><p>Cold start latency (50–500ms) is the #1 enemy of serverless at scale. Meta solves it via pre-warming (keep N idle workers hot based on traffic forecast), snapshot restore (fork from a frozen process image), and co-location with data dependencies to minimize network round trips.</p></div>
+      </div>
+      <div class="body-section">
+        <h3>Research Papers & Key Resources</h3>
+        <div class="paper-list">
+          <div class="paper-item gold">
+            <div class="paper-title">Serverless Computing: One Step Forward, Two Steps Back</div>
+            <div class="paper-meta">Hellerstein et al. · UC Berkeley · CIDR 2019</div>
+            <div class="paper-desc">Critical analysis of serverless limitations: poor for stateful apps, high cold starts, communication overhead. Sets the research agenda that Meta's platform attempts to solve.</div>
+            <a class="paper-link" href="http://cidrdb.org/cidr2019/papers/p119-hellerstein-cidr19.pdf" target="_blank">→ Free PDF</a>
+          </div>
+          <div class="paper-item">
+            <div class="paper-title">SOCK: Rapid Task Provisioning with Serverless-Optimized Containers</div>
+            <div class="paper-meta">Oakes et al. · UW-Madison · USENIX ATC 2018</div>
+            <div class="paper-desc">Introduces optimized container startup for serverless functions. Achieves 18x lower cold-start latency using lean containers. Directly relevant to Meta's approach.</div>
+            <a class="paper-link" href="https://www.usenix.org/system/files/conference/atc18/atc18-oakes.pdf" target="_blank">→ Free PDF</a>
+          </div>
+          <div class="paper-item green">
+            <div class="paper-title">Firecracker: Lightweight Virtualization for Serverless Applications</div>
+            <div class="paper-meta">Agache et al. · Amazon · NSDI 2020</div>
+            <div class="paper-desc">AWS Lambda's microVM approach. 125ms boot time, 5MB overhead per VM. Foundation for modern FaaS isolation. Comparable to Meta's container strategy.</div>
+            <a class="paper-link" href="https://www.usenix.org/system/files/nsdi20-paper-agache.pdf" target="_blank">→ Free PDF</a>
+          </div>
+          <div class="paper-item pink">
+            <div class="paper-title">Faasm: Lightweight Isolation for Efficient Stateful Serverless Computing</div>
+            <div class="paper-meta">Shillaker & Pietzuch · Imperial College · USENIX ATC 2020</div>
+            <div class="paper-desc">WebAssembly-based isolation for serverless with shared memory regions. Pushes towards stateful serverless, a key concern at Meta's scale.</div>
+            <a class="paper-link" href="https://www.usenix.org/system/files/atc20-shillaker.pdf" target="_blank">→ Free PDF</a>
+          </div>
+          <div class="paper-item">
+            <div class="paper-title">Twine: A Unified Cluster Management System for Shared Infrastructure</div>
+            <div class="paper-meta">Tang et al. · Meta · OSDI 2020</div>
+            <div class="paper-desc">Meta's actual cluster management system that underlies their serverless infrastructure. Describes how they schedule millions of tasks across fleets.</div>
+            <a class="paper-link" href="https://www.usenix.org/conference/osdi20/presentation/tang" target="_blank">→ USENIX</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 03 Google Docs -->
+  <div class="topic-card" id="google-docs">
+    <div class="topic-header" onclick="toggleCard(this)">
+      <div class="topic-num">03</div>
+      <div class="topic-title-wrap">
+        <h2>How Google Docs Works</h2>
+        <div class="topic-tags">
+          <span class="tag tag-blue">OT / CRDT</span>
+          <span class="tag tag-green">Real-time Collaboration</span>
+          <span class="tag tag-gold">WebSocket</span>
+          <span class="tag tag-pink">Conflict Resolution</span>
+        </div>
+      </div>
+      <div class="expand-icon">▾</div>
+    </div>
+    <div class="topic-body">
+      <div class="body-section">
+        <h3>System Overview</h3>
+        <p>Google Docs uses Operational Transformation (OT) to synchronize edits from multiple users in real time. Every character insertion/deletion is represented as an operation that gets transformed against concurrent operations before being applied. The server is the single source of truth and serializes all operations. Google's internal system is called "Wave" OT (open-sourced).</p>
+        <div class="arch-grid">
+          <div class="arch-item"><div class="arch-item-label">Algorithm</div><div class="arch-item-value">Operational Transformation (OT)</div></div>
+          <div class="arch-item"><div class="arch-item-label">Connection</div><div class="arch-item-value">WebSocket + Long Polling</div></div>
+          <div class="arch-item"><div class="arch-item-label">Storage</div><div class="arch-item-value">Bigtable + Colossus (GFS2)</div></div>
+          <div class="arch-item"><div class="arch-item-label">Alternative</div><div class="arch-item-value">CRDTs (used by Figma, Notion)</div></div>
+        </div>
+      </div>
+      <div class="body-section">
+        <h3>OT vs CRDTs</h3>
+        <div class="insight-box"><p>OT requires a central server to serialize operations — simpler reasoning but a bottleneck. CRDTs (Conflict-free Replicated Data Types) are commutative by design and need no coordinator, making them suitable for offline-first and P2P collaboration. Both aim to satisfy convergence (all replicas eventually reach same state) and intention preservation.</p></div>
+      </div>
+      <div class="body-section">
+        <h3>Research Papers & Key Resources</h3>
+        <div class="paper-list">
+          <div class="paper-item gold">
+            <div class="paper-title">Operational Transformation in Real-Time Group Editors</div>
+            <div class="paper-meta">Ellis & Gibbs · MCC · CSCW 1989</div>
+            <div class="paper-desc">The original OT paper. Foundational to Google Docs architecture. Introduces the GROVE (Group Outline Viewing and Editing) system. All collaborative editor systems reference this work.</div>
+          </div>
+          <div class="paper-item">
+            <div class="paper-title">Google Wave Operational Transformation</div>
+            <div class="paper-meta">Wang et al. · Google · 2010</div>
+            <div class="paper-desc">Google's whitepaper on the OT algorithm used in Wave and subsequently Google Docs. Covers transformation functions for rich text documents.</div>
+            <a class="paper-link" href="https://svn.apache.org/repos/asf/incubator/wave/whitepapers/operational-transform/operational-transform.pdf" target="_blank">→ Free PDF</a>
+          </div>
+          <div class="paper-item green">
+            <div class="paper-title">CRDTs: Consistency Without Concurrency Control</div>
+            <div class="paper-meta">Shapiro et al. · INRIA · 2011</div>
+            <div class="paper-desc">Comprehensive introduction to Conflict-free Replicated Data Types — the alternative to OT used in Figma, Notion, and offline-first apps. Covers G-Counter, PN-Counter, LWW-Element-Set.</div>
+            <a class="paper-link" href="https://hal.inria.fr/inria-00555588/document" target="_blank">→ Free PDF</a>
+          </div>
+          <div class="paper-item pink">
+            <div class="paper-title">LSEQ: an Adaptive Structure for Sequences in Distributed Collaborative Editing</div>
+            <div class="paper-meta">Nédelec et al. · DocEng 2013</div>
+            <div class="paper-desc">Solves the "tombstone" problem in sequence CRDTs. Highly cited in collaborative editing literature. Used in modern CRDT-based editors.</div>
+          </div>
+          <div class="paper-item">
+            <div class="paper-title">Real Differences Between OT and CRDT for Co-Editors</div>
+            <div class="paper-meta">Sun & Sun · ACM CSCW 2020</div>
+            <div class="paper-desc">Empirical comparison of OT vs CRDT approaches in production collaborative editors. Breaks down performance, consistency, and implementation complexity trade-offs.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 04 Kafka -->
+  <div class="topic-card" id="kafka">
+    <div class="topic-header" onclick="toggleCard(this)">
+      <div class="topic-num">04</div>
+      <div class="topic-title-wrap">
+        <h2>How Apache Kafka Works</h2>
+        <div class="topic-tags">
+          <span class="tag tag-blue">Distributed Log</span>
+          <span class="tag tag-green">Pub-Sub</span>
+          <span class="tag tag-gold">Stream Processing</span>
+          <span class="tag tag-pink">Exactly-Once Semantics</span>
+        </div>
+      </div>
+      <div class="expand-icon">▾</div>
+    </div>
+    <div class="topic-body">
+      <div class="body-section">
+        <h3>System Overview</h3>
+        <p>Kafka is a distributed commit log. Topics are divided into partitions, each an ordered, immutable sequence of records stored on disk. Producers append to partition tails; consumers read at their own pace using offsets. The key insight: Kafka's performance comes from sequential disk I/O (fast on all storage types), page cache reliance (avoids double buffering), and zero-copy transfer via sendfile() system call.</p>
+        <div class="arch-grid">
+          <div class="arch-item"><div class="arch-item-label">Original Publisher</div><div class="arch-item-value">LinkedIn (2011)</div></div>
+          <div class="arch-item"><div class="arch-item-label">Throughput</div><div class="arch-item-value">Millions msgs/sec per broker</div></div>
+          <div class="arch-item"><div class="arch-item-label">Retention</div><div class="arch-item-value">Time-based (default 7 days)</div></div>
+          <div class="arch-item"><div class="arch-item-label">Coordination</div><div class="arch-item-value">ZooKeeper → KRaft (2.8+)</div></div>
+          <div class="arch-item"><div class="arch-item-label">Delivery</div><div class="arch-item-value">At-least, At-most, Exactly-once</div></div>
+          <div class="arch-item"><div class="arch-item-label">Replication</div><div class="arch-item-value">ISR (In-Sync Replicas)</div></div>
+        </div>
+      </div>
+      <div class="body-section">
+        <h3>The Log: Foundation of Modern Data Systems</h3>
+        <div class="insight-box"><p>Jay Kreps (Kafka co-creator) argues in "The Log: What every software engineer should know about real-time data's unifying abstraction" that the append-only log is the simplest yet most powerful abstraction in distributed systems — it unifies databases, stream processors, and messaging queues.</p></div>
+      </div>
+      <div class="body-section">
+        <h3>Research Papers & Key Resources</h3>
+        <div class="paper-list">
+          <div class="paper-item gold">
+            <div class="paper-title">Kafka: A Distributed Messaging System for Log Processing</div>
+            <div class="paper-meta">Kreps, Narkhede, Rao · LinkedIn · NetDB 2011</div>
+            <div class="paper-desc">The original Kafka paper. Describes the pull-based consumer model, sequential disk access, zero-copy data transfer, and the design decisions that gave Kafka orders-of-magnitude better throughput than ActiveMQ and RabbitMQ. Essential reading.</div>
+            <a class="paper-link" href="https://notes.stephenholiday.com/Kafka.pdf" target="_blank">→ Free PDF</a>
+          </div>
+          <div class="paper-item">
+            <div class="paper-title">Samza: Stateful Scalable Stream Processing at LinkedIn</div>
+            <div class="paper-meta">Noghabi et al. · LinkedIn · VLDB 2017</div>
+            <div class="paper-desc">LinkedIn's stream processing system built on Kafka. Covers stateful operators, fault tolerance via checkpointing, and how Kafka's log enables replay-based recovery.</div>
+            <a class="paper-link" href="http://www.vldb.org/pvldb/vol10/p1634-noghabi.pdf" target="_blank">→ Free PDF</a>
+          </div>
+          <div class="paper-item green">
+            <div class="paper-title">Exactly-Once Semantics Are Possible: Here's How Kafka Does It</div>
+            <div class="paper-meta">Narkhede · Confluent Engineering Blog · 2017</div>
+            <div class="paper-desc">Explains the idempotent producer + transactional API added in Kafka 0.11. Two-phase commit within Kafka's log. Critical for payment and financial pipelines.</div>
+            <a class="paper-link" href="https://www.confluent.io/blog/exactly-once-semantics-are-possible-heres-how-apache-kafka-does-it/" target="_blank">→ Blog</a>
+          </div>
+          <div class="paper-item pink">
+            <div class="paper-title">The Log: What Every Software Engineer Should Know</div>
+            <div class="paper-meta">Kreps · LinkedIn Engineering · 2013</div>
+            <div class="paper-desc">Seminal blog post (read as a paper) explaining logs as a unifying abstraction. Explains how databases, distributed systems, and Kafka all reduce to append-only logs.</div>
+            <a class="paper-link" href="https://engineering.linkedin.com/distributed-systems/log-what-every-software-engineer-should-know-about-real-time-datas-unifying" target="_blank">→ Blog</a>
+          </div>
+          <div class="paper-item">
+            <div class="paper-title">Apache Flink: Stream and Batch Processing in a Single Engine</div>
+            <div class="paper-meta">Carbone et al. · TU Berlin · IEEE Data Eng. Bulletin 2015</div>
+            <div class="paper-desc">Flink is the most common stream processor on top of Kafka. This paper covers stateful stream operators, event time processing, and exactly-once checkpointing.</div>
+            <a class="paper-link" href="http://sites.computer.org/debull/A15dec/p28.pdf" target="_blank">→ Free PDF</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 05 Stock Exchange -->
+  <div class="topic-card" id="stock-exchange">
+    <div class="topic-header" onclick="toggleCard(this)">
+      <div class="topic-num">05</div>
+      <div class="topic-title-wrap">
+        <h2>How Stock Exchange Works</h2>
+        <div class="topic-tags">
+          <span class="tag tag-gold">Order Matching</span>
+          <span class="tag tag-blue">Low Latency</span>
+          <span class="tag tag-green">LMAX Disruptor</span>
+          <span class="tag tag-pink">FIX Protocol</span>
+        </div>
+      </div>
+      <div class="expand-icon">▾</div>
+    </div>
+    <div class="topic-body">
+      <div class="body-section">
+        <h3>System Overview</h3>
+        <p>A stock exchange is one of the most latency-sensitive systems in the world. NYSE processes ~20M trades/day with sub-microsecond matching. The order book (bid/ask) is a priority queue maintained in memory. The matching engine is single-threaded to avoid locks. Modern exchanges use FPGAs and kernel-bypass networking (DPDK, RDMA) to achieve nanosecond latencies.</p>
+        <div class="arch-grid">
+          <div class="arch-item"><div class="arch-item-label">Matching Engine</div><div class="arch-item-value">Single-threaded, in-memory</div></div>
+          <div class="arch-item"><div class="arch-item-label">Order Book DS</div><div class="arch-item-value">Price-time priority (heap/tree)</div></div>
+          <div class="arch-item"><div class="arch-item-label">Latency Target</div><div class="arch-item-value">&lt;10µs (NASDAQ), &lt;1µs (HFT)</div></div>
+          <div class="arch-item"><div class="arch-item-label">Network</div><div class="arch-item-value">Kernel-bypass (DPDK, RDMA)</div></div>
+          <div class="arch-item"><div class="arch-item-label">Protocol</div><div class="arch-item-value">FIX, ITCH, OUCH</div></div>
+          <div class="arch-item"><div class="arch-item-label">Persistence</div><div class="arch-item-value">LMAX Disruptor ring buffer</div></div>
+        </div>
+      </div>
+      <div class="body-section">
+        <h3>Research Papers & Key Resources</h3>
+        <div class="paper-list">
+          <div class="paper-item gold">
+            <div class="paper-title">LMAX Disruptor: High Performance Alternative to Bounded Queues</div>
+            <div class="paper-meta">Thompson et al. · LMAX Exchange · 2011</div>
+            <div class="paper-desc">The architecture behind LMAX Exchange — 6 million orders/sec on a single thread. Uses a pre-allocated ring buffer with memory barriers instead of locks. Revolutionary for financial systems engineering.</div>
+            <a class="paper-link" href="https://lmax-exchange.github.io/disruptor/disruptor.html" target="_blank">→ White Paper</a>
+          </div>
+          <div class="paper-item">
+            <div class="paper-title">Mechanical Sympathy: The Art of Low-Latency Architecture</div>
+            <div class="paper-meta">Martin Thompson · GOTO Conference 2012</div>
+            <div class="paper-desc">Discusses CPU cache lines, false sharing, and memory access patterns. Essential for understanding why exchange matching engines are designed the way they are.</div>
+          </div>
+          <div class="paper-item green">
+            <div class="paper-title">Design Patterns for Low Latency Applications with Intel® DPDK</div>
+            <div class="paper-meta">Intel · 2014</div>
+            <div class="paper-desc">Kernel-bypass networking for sub-microsecond packet processing. Used by exchanges to eliminate OS overhead from the network stack.</div>
+            <a class="paper-link" href="https://www.intel.com/content/www/us/en/developer/articles/technical/dpdk-design-best-practices.html" target="_blank">→ Intel</a>
+          </div>
+          <div class="paper-item pink">
+            <div class="paper-title">High Frequency Trading: Market Microstructure and Economics</div>
+            <div class="paper-meta">Aldridge · John Wiley & Sons · 2013 (Book)</div>
+            <div class="paper-desc">Covers the economic motivation behind HFT and the technical architecture needed. Essential context for why exchanges push to nanosecond latency.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 06 Uber -->
+  <div class="topic-card" id="uber">
+    <div class="topic-header" onclick="toggleCard(this)">
+      <div class="topic-num">06</div>
+      <div class="topic-title-wrap">
+        <h2>How Uber Finds Nearby Drivers at 1 Million Requests/Second</h2>
+        <div class="topic-tags">
+          <span class="tag tag-blue">Geospatial</span>
+          <span class="tag tag-green">S2 Geometry</span>
+          <span class="tag tag-gold">Real-time Location</span>
+          <span class="tag tag-pink">Dispatch System</span>
+        </div>
+      </div>
+      <div class="expand-icon">▾</div>
+    </div>
+    <div class="topic-body">
+      <div class="body-section">
+        <h3>System Overview</h3>
+        <p>Uber's dispatch system must find the nearest available driver within milliseconds. The naive approach (iterate all drivers) fails at scale. Uber uses Google's S2 library which maps Earth's surface to 1D using a Hilbert space-filling curve (preserves spatial locality). Each driver location is stored in a key-value store indexed by S2 cell ID. Nearby search = range scan on adjacent cell IDs.</p>
+        <div class="arch-grid">
+          <div class="arch-item"><div class="arch-item-label">Spatial Index</div><div class="arch-item-value">Google S2 (Hilbert Curve)</div></div>
+          <div class="arch-item"><div class="arch-item-label">Location Update</div><div class="arch-item-value">Every 4 seconds per driver</div></div>
+          <div class="arch-item"><div class="arch-item-label">Storage</div><div class="arch-item-value">Redis (in-memory, geo commands)</div></div>
+          <div class="arch-item"><div class="arch-item-label">Peak Load</div><div class="arch-item-value">1M requests/second</div></div>
+          <div class="arch-item"><div class="arch-item-label">Architecture</div><div class="arch-item-value">DISCO / Ringpop (old); Cadence</div></div>
+          <div class="arch-item"><div class="arch-item-label">DB</div><div class="arch-item-value">Schemaless (MySQL → Cassandra)</div></div>
+        </div>
+      </div>
+      <div class="body-section">
+        <h3>Research Papers & Key Resources</h3>
+        <div class="paper-list">
+          <div class="paper-item gold">
+            <div class="paper-title">Space-Filling Curves: An Introduction With Applications in Scientific Computing</div>
+            <div class="paper-meta">Bader · Springer · 2012 (Book)</div>
+            <div class="paper-desc">Mathematical foundation for Hilbert curves used in S2. Understanding this is key to grasping why Uber's spatial index is efficient — locality-preserving mapping collapses 2D to 1D.</div>
+          </div>
+          <div class="paper-item">
+            <div class="paper-title">Uber's Schemaless: A Scalable MySQL-Based Key-Value Store</div>
+            <div class="paper-meta">Uber Engineering Blog · 2016</div>
+            <div class="paper-desc">Describes how Uber stored driver/trip data at scale using MySQL with a denormalized key-value layer. Evolved into the Docstore system (Cassandra-backed).</div>
+            <a class="paper-link" href="https://www.uber.com/blog/schemaless-rewrite/" target="_blank">→ Uber Blog</a>
+          </div>
+          <div class="paper-item green">
+            <div class="paper-title">Ringpop: Scalable Fault-Tolerant Application-Layer Sharding</div>
+            <div class="paper-meta">Uber Engineering · 2015</div>
+            <div class="paper-desc">Uber's consistent-hash ring for distributing driver location ownership across their dispatch fleet. Enables Uber to shard "who owns which S2 cell" across thousands of servers.</div>
+            <a class="paper-link" href="https://eng.uber.com/intro-to-ringpop/" target="_blank">→ Uber Blog</a>
+          </div>
+          <div class="paper-item pink">
+            <div class="paper-title">H3: Uber's Hexagonal Hierarchical Spatial Index</div>
+            <div class="paper-meta">Brodsky · Uber Open Source · 2018</div>
+            <div class="paper-desc">Uber's open-source replacement for S2. Uses hexagonal grids (better for distance approximations) at 16 resolution levels. Now used for surge pricing, demand forecasting, and driver matching.</div>
+            <a class="paper-link" href="https://eng.uber.com/h3/" target="_blank">→ Uber Blog</a>
+          </div>
+          <div class="paper-item">
+            <div class="paper-title">Reliable, Scalable Dispatching Architecture: Uber's Dispatch System</div>
+            <div class="paper-meta">Uber Engineering Blog · 2015</div>
+            <div class="paper-desc">Covers the full dispatch pipeline from rider request to driver assignment. Discusses the Supply Service, Demand Service, and Dispatch Service architecture with Ringpop sharding.</div>
+            <a class="paper-link" href="https://www.uber.com/blog/architecting-for-real-time-demand-and-supply-matching/" target="_blank">→ Uber Blog</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 07 Reddit -->
+  <div class="topic-card" id="reddit">
+    <div class="topic-header" onclick="toggleCard(this)">
+      <div class="topic-num">07</div>
+      <div class="topic-title-wrap">
+        <h2>How Reddit Works</h2>
+        <div class="topic-tags">
+          <span class="tag tag-blue">Vote Aggregation</span>
+          <span class="tag tag-green">Feed Generation</span>
+          <span class="tag tag-gold">Memcached</span>
+          <span class="tag tag-pink">Hot Ranking</span>
+        </div>
+      </div>
+      <div class="expand-icon">▾</div>
+    </div>
+    <div class="topic-body">
+      <div class="body-section">
+        <h3>System Overview</h3>
+        <p>Reddit's hotness algorithm combines score (upvotes − downvotes) with time decay. The ranking is recomputed periodically and cached aggressively in Memcached. Reddit uses PostgreSQL for persistent storage, Cassandra for vote aggregation, and Kafka for event streaming. The main scaling challenge is "vote bombing" (millions of votes on trending posts) and the frontpage cache invalidation problem.</p>
+        <div class="arch-grid">
+          <div class="arch-item"><div class="arch-item-label">Hot Algorithm</div><div class="arch-item-value">Wilson score + time decay</div></div>
+          <div class="arch-item"><div class="arch-item-label">Primary DB</div><div class="arch-item-value">PostgreSQL (sharded)</div></div>
+          <div class="arch-item"><div class="arch-item-label">Vote Store</div><div class="paper-desc">Cassandra (eventual consistency)</div></div>
+          <div class="arch-item"><div class="arch-item-label">Cache</div><div class="arch-item-value">Memcached (Mcrouter)</div></div>
+          <div class="arch-item"><div class="arch-item-label">Search</div><div class="arch-item-value">Elasticsearch</div></div>
+          <div class="arch-item"><div class="arch-item-label">CDN</div><div class="arch-item-value">Fastly</div></div>
+        </div>
+      </div>
+      <div class="body-section">
+        <h3>Research Papers & Key Resources</h3>
+        <div class="paper-list">
+          <div class="paper-item gold">
+            <div class="paper-title">Reddit's Architecture: Scaling a Community Platform</div>
+            <div class="paper-meta">Reddit Engineering Blog · Various Posts 2012–2020</div>
+            <div class="paper-desc">Reddit's engineering blog covers their PostgreSQL sharding strategy, move to AWS, Cassandra adoption for votes, and Kafka for event streaming. Practical case study in iterative scaling.</div>
+            <a class="paper-link" href="https://www.reddit.com/r/RedditEng/" target="_blank">→ Reddit Eng</a>
+          </div>
+          <div class="paper-item">
+            <div class="paper-title">How Not to Sort by Average Rating (Wilson Score)</div>
+            <div class="paper-meta">Miller · 2009</div>
+            <div class="paper-desc">Explains the statistical ranking algorithm used by Reddit's hot algorithm. The Wilson score confidence interval is the correct way to rank items by positive/negative ratings at varying sample sizes.</div>
+            <a class="paper-link" href="https://www.evanmiller.org/how-not-to-sort-by-average-rating.html" target="_blank">→ Article</a>
+          </div>
+          <div class="paper-item green">
+            <div class="paper-title">Scaling Memcache at Facebook</div>
+            <div class="paper-meta">Nishtala et al. · Facebook · NSDI 2013</div>
+            <div class="paper-desc">Facebook's battle-tested Memcached deployment (analogous to Reddit's Mcrouter). Covers lease-based cache invalidation, regional replication, and thundering herd prevention — all directly applicable to Reddit's caching layer.</div>
+            <a class="paper-link" href="https://www.usenix.org/system/files/conference/nsdi13/nsdi13-final170_update.pdf" target="_blank">→ Free PDF</a>
+          </div>
+          <div class="paper-item pink">
+            <div class="paper-title">Cassandra: A Decentralized Structured Storage System</div>
+            <div class="paper-meta">Lakshman & Malik · Facebook · SOSP 2009</div>
+            <div class="paper-desc">The Cassandra paper — used by Reddit for vote storage. Wide-column, tunable consistency. Combines Dynamo's distribution model with BigTable's data model.</div>
+            <a class="paper-link" href="https://www.cs.cornell.edu/projects/ladis2009/papers/lakshman-ladis2009.pdf" target="_blank">→ Free PDF</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 08 Tinder -->
+  <div class="topic-card" id="tinder">
+    <div class="topic-header" onclick="toggleCard(this)">
+      <div class="topic-num">08</div>
+      <div class="topic-title-wrap">
+        <h2>How Tinder Works</h2>
+        <div class="topic-tags">
+          <span class="tag tag-blue">Geo Matching</span>
+          <span class="tag tag-green">Recommendation</span>
+          <span class="tag tag-gold">ELO Score</span>
+          <span class="tag tag-pink">Swipe Engine</span>
+        </div>
+      </div>
+      <div class="expand-icon">▾</div>
+    </div>
+    <div class="topic-body">
+      <div class="body-section">
+        <h3>System Overview</h3>
+        <p>Tinder's core challenge: for a given user, return a stack of nearby profiles ordered by desirability, in real time, from a pool of 50M+ active users. Tinder uses a geo-sharded user store (Geosharded MongoDB initially, then Cassandra), an ELO-like attractiveness score for ranking, and a Recs service that pre-computes recommendation stacks. When two users both right-swipe, they match.</p>
+        <div class="arch-grid">
+          <div class="arch-item"><div class="arch-item-label">Geo Index</div><div class="arch-item-value">S2 Cells / Geohash</div></div>
+          <div class="arch-item"><div class="arch-item-label">Ranking</div><div class="arch-item-value">ELO score (chess-derived)</div></div>
+          <div class="arch-item"><div class="arch-item-label">Storage</div><div class="arch-item-value">Cassandra + Redis</div></div>
+          <div class="arch-item"><div class="arch-item-label">Recs</div><div class="arch-item-value">Pre-computed, cached in Redis</div></div>
+          <div class="arch-item"><div class="arch-item-label">Images</div><div class="arch-item-value">S3 + CloudFront CDN</div></div>
+          <div class="arch-item"><div class="arch-item-label">Streaming</div><div class="arch-item-value">Kafka for match events</div></div>
+        </div>
+      </div>
+      <div class="body-section">
+        <h3>Research Papers & Key Resources</h3>
+        <div class="paper-list">
+          <div class="paper-item gold">
+            <div class="paper-title">Tinder's Architecture: Petabytes of Data, Billions of Swipes</div>
+            <div class="paper-meta">Tinder Engineering Blog · 2020</div>
+            <div class="paper-desc">Direct technical blog post from Tinder engineers covering their petabyte-scale architecture, Cassandra adoption, and how they moved from monolith to microservices.</div>
+            <a class="paper-link" href="https://medium.com/tinder/how-we-store-billions-of-records-and-millions-of-matches-per-day-on-tinder-b17782f3aed7" target="_blank">→ Tinder Blog</a>
+          </div>
+          <div class="paper-item">
+            <div class="paper-title">Collaborative Filtering for Implicit Feedback Datasets</div>
+            <div class="paper-meta">Hu, Koren, Volinsky · ICDM 2008</div>
+            <div class="paper-desc">Foundation for recommendation systems. Tinder's "Smart Photos" and profile ordering use collaborative filtering variants. Understanding implicit feedback (swipes) vs explicit ratings is critical.</div>
+          </div>
+          <div class="paper-item green">
+            <div class="paper-title">Real-Time Machine Learning for Recommendations at Tinder</div>
+            <div class="paper-meta">Tinder Engineering · 2020</div>
+            <div class="paper-desc">Describes how Tinder moved from ELO to ML-based scoring. Uses online learning with user swipe feedback to improve recommendation stacks in real time.</div>
+            <a class="paper-link" href="https://medium.com/tinder/powering-tinder-why-we-use-spark-ml-on-spark-streaming-to-score-recommendations-in-real-time-9d07fbcfbddc" target="_blank">→ Blog</a>
+          </div>
+          <div class="paper-item pink">
+            <div class="paper-title">ELO Rating System in Competitive Environments</div>
+            <div class="paper-meta">Elo, A.E. · Original Chess System · 1960s</div>
+            <div class="paper-desc">Tinder publicly acknowledged using an ELO-like system (called "desirability score") before switching to ML. Understanding the original ELO math is essential context.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 09 Spotify -->
+  <div class="topic-card" id="spotify">
+    <div class="topic-header" onclick="toggleCard(this)">
+      <div class="topic-num">09</div>
+      <div class="topic-title-wrap">
+        <h2>How Spotify Works</h2>
+        <div class="topic-tags">
+          <span class="tag tag-blue">Audio CDN</span>
+          <span class="tag tag-green">Recommendation ML</span>
+          <span class="tag tag-gold">Backstage</span>
+          <span class="tag tag-pink">Microservices</span>
+        </div>
+      </div>
+      <div class="expand-icon">▾</div>
+    </div>
+    <div class="topic-body">
+      <div class="body-section">
+        <h3>System Overview</h3>
+        <p>Spotify serves 100M+ songs to 600M+ users. Audio files are stored on GCS (Google Cloud Storage) and served via CDN with adaptive bitrate streaming. Spotify's recommendation engine (Discover Weekly, Daily Mix) uses a hybrid of collaborative filtering (matrix factorization on listen history) and natural language processing (audio analysis + playlist text). The backend runs on GCP with 800+ microservices.</p>
+        <div class="arch-grid">
+          <div class="arch-item"><div class="arch-item-label">Audio Storage</div><div class="arch-item-value">Google Cloud Storage</div></div>
+          <div class="arch-item"><div class="arch-item-label">Streaming</div><div class="arch-item-value">OGG Vorbis (bitrate adaptive)</div></div>
+          <div class="arch-item"><div class="arch-item-label">Reco Engine</div><div class="paper-desc">Matrix Factorization + NLP</div></div>
+          <div class="arch-item"><div class="arch-item-label">Event Stream</div><div class="arch-item-value">Kafka + BigQuery</div></div>
+          <div class="arch-item"><div class="arch-item-label">Service Catalog</div><div class="arch-item-value">Backstage (open-sourced 2020)</div></div>
+          <div class="arch-item"><div class="arch-item-label">ML Platform</div><div class="arch-item-value">Kubeflow + Vertex AI</div></div>
+        </div>
+      </div>
+      <div class="body-section">
+        <h3>Research Papers & Key Resources</h3>
+        <div class="paper-list">
+          <div class="paper-item gold">
+            <div class="paper-title">Deep Content-Based Music Recommendation</div>
+            <div class="paper-meta">van den Oord et al. · Spotify/KU Leuven · NeurIPS 2013</div>
+            <div class="paper-desc">Spotify's approach to cold-start problem: use deep CNNs on raw audio spectrograms to predict latent factors, enabling recommendations for new songs with no listen history.</div>
+            <a class="paper-link" href="https://proceedings.neurips.cc/paper/2013/file/b3ba8f1bee1238a2f37603d90b58898d-Paper.pdf" target="_blank">→ Free PDF</a>
+          </div>
+          <div class="paper-item">
+            <div class="paper-title">Word2Vec Applied to Recommendations: Spotify's Metadata Embeddings</div>
+            <div class="paper-meta">Spotify Research · 2016</div>
+            <div class="paper-desc">Spotify treats songs as "words" and playlists as "sentences," training Word2Vec to learn song embeddings. Similar songs have similar vectors. Powers Related Artists and Radio.</div>
+            <a class="paper-link" href="https://research.atspotify.com/2016/11/applying-word2vec-to-recommenders-and-advertising/" target="_blank">→ Blog</a>
+          </div>
+          <div class="paper-item green">
+            <div class="paper-title">Podcast Recommendations at Spotify</div>
+            <div class="paper-meta">Spotify Research · 2020</div>
+            <div class="paper-desc">Extends recommendation to audio content with transcripts. Combines BERT-based text understanding with collaborative filtering signals. Describes the multi-modal recommendation architecture.</div>
+          </div>
+          <div class="paper-item pink">
+            <div class="paper-title">Backstage: Empowering Product Teams with a Service Catalog</div>
+            <div class="paper-meta">Spotify Engineering · 2020 (Open Source)</div>
+            <div class="paper-desc">Spotify's internal developer portal, open-sourced and now a CNCF project. Solved the "800+ microservices, no way to navigate them" problem via a software catalog and TechDocs.</div>
+            <a class="paper-link" href="https://engineering.atspotify.com/2020/04/how-we-use-backstage-at-spotify/" target="_blank">→ Blog</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10 WhatsApp -->
+  <div class="topic-card" id="whatsapp">
+    <div class="topic-header" onclick="toggleCard(this)">
+      <div class="topic-num">10</div>
+      <div class="topic-title-wrap">
+        <h2>How WhatsApp Works</h2>
+        <div class="topic-tags">
+          <span class="tag tag-blue">Erlang/OTP</span>
+          <span class="tag tag-green">E2E Encryption</span>
+          <span class="tag tag-gold">XMPP</span>
+          <span class="tag tag-pink">50B msgs/day</span>
+        </div>
+      </div>
+      <div class="expand-icon">▾</div>
+    </div>
+    <div class="topic-body">
+      <div class="body-section">
+        <h3>System Overview</h3>
+        <p>WhatsApp serves 50 billion messages/day with just ~50 engineers at acquisition (2014). The secret: Erlang's actor model gives each user a lightweight process (~2KB), enabling millions of concurrent connections per server. The Signal Protocol provides end-to-end encryption. Messages are persisted in Mnesia (Erlang's built-in distributed DB) and deleted after delivery. Media is stored in S3, not the message store.</p>
+        <div class="arch-grid">
+          <div class="arch-item"><div class="arch-item-label">Backend Language</div><div class="arch-item-value">Erlang (BEAM VM)</div></div>
+          <div class="arch-item"><div class="arch-item-label">Protocol</div><div class="arch-item-value">Modified XMPP over WebSocket</div></div>
+          <div class="arch-item"><div class="arch-item-label">Encryption</div><div class="arch-item-value">Signal Protocol (E2E)</div></div>
+          <div class="arch-item"><div class="arch-item-label">Message DB</div><div class="arch-item-value">Mnesia (Erlang native)</div></div>
+          <div class="arch-item"><div class="arch-item-label">Media</div><div class="arch-item-value">Amazon S3 (deleted post-download)</div></div>
+          <div class="arch-item"><div class="arch-item-label">OS</div><div class="arch-item-value">FreeBSD (for high file handles)</div></div>
+        </div>
+      </div>
+      <div class="body-section">
+        <h3>Research Papers & Key Resources</h3>
+        <div class="paper-list">
+          <div class="paper-item gold">
+            <div class="paper-title">The Signal Protocol: A Modern Cryptographic Standard</div>
+            <div class="paper-meta">Marlinspike & Perrin · Open Whisper Systems · 2016</div>
+            <div class="paper-desc">Technical specification for the Signal Protocol used in WhatsApp, Signal, and Facebook Messenger. Covers the Double Ratchet algorithm (combining X3DH key agreement with message ratcheting) for perfect forward secrecy.</div>
+            <a class="paper-link" href="https://signal.org/docs/specifications/doubleratchet/" target="_blank">→ Specification</a>
+          </div>
+          <div class="paper-item">
+            <div class="paper-title">Scaling Erlang for Messaging: WhatsApp's Approach</div>
+            <div class="paper-meta">Ferd Hébért · Erlang Factory · 2014</div>
+            <div class="paper-desc">Explains how Erlang's actor model (gen_server processes per user) allows WhatsApp to handle 2.5M+ concurrent connections per node. Covers OTP supervision trees and hot code reloading.</div>
+            <a class="paper-link" href="https://www.erlang-factory.com/upload/presentations/558/efsf2012-whatsapp.pdf" target="_blank">→ Slides</a>
+          </div>
+          <div class="paper-item green">
+            <div class="paper-title">End-to-End Encryption in Messaging: Technical and Policy Dimensions</div>
+            <div class="paper-meta">Green et al. · 2020</div>
+            <div class="paper-desc">Comprehensive survey of E2E encryption in messaging apps. Covers WhatsApp's multi-device challenges, key management, and the policy debates around backdoors.</div>
+          </div>
+          <div class="paper-item pink">
+            <div class="paper-title">Engineering WhatsApp for Two Billion Users</div>
+            <div class="paper-meta">WhatsApp/Facebook Engineering · 2020</div>
+            <div class="paper-desc">Blog post detailing the multi-device architecture introduced in 2021, where the same account can be active on multiple devices simultaneously, requiring a new key distribution model.</div>
+            <a class="paper-link" href="https://engineering.fb.com/2021/07/14/security/whatsapp-multi-device/" target="_blank">→ FB Engineering</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 11 Bluesky -->
+  <div class="topic-card" id="bluesky">
+    <div class="topic-header" onclick="toggleCard(this)">
+      <div class="topic-num">11</div>
+      <div class="topic-title-wrap">
+        <h2>How Bluesky Works</h2>
+        <div class="topic-tags">
+          <span class="tag tag-blue">AT Protocol</span>
+          <span class="tag tag-green">Federated Social</span>
+          <span class="tag tag-gold">DID (Decentralized ID)</span>
+          <span class="tag tag-pink">PDS / Relay / AppView</span>
+        </div>
+      </div>
+      <div class="expand-icon">▾</div>
+    </div>
+    <div class="topic-body">
+      <div class="body-section">
+        <h3>System Overview</h3>
+        <p>Bluesky is built on the AT Protocol (Authenticated Transfer Protocol) — a federated social protocol where users own their data. Each user has a Personal Data Server (PDS) holding their signed repository (a Merkle tree of all posts/follows). A Relay ("Firehose") crawls all PDSes and emits a global event stream. AppViews (e.g., the Bluesky app) subscribe to the relay and build indexes for search/feeds. Users can migrate between PDSes without losing followers.</p>
+        <div class="arch-grid">
+          <div class="arch-item"><div class="arch-item-label">Identity</div><div class="arch-item-value">DID (Decentralized Identifier)</div></div>
+          <div class="arch-item"><div class="arch-item-label">Data Model</div><div class="arch-item-value">Merkle DAG (signed repos)</div></div>
+          <div class="arch-item"><div class="arch-item-label">Protocol</div><div class="paper-desc">AT Protocol (atproto.com)</div></div>
+          <div class="arch-item"><div class="arch-item-label">Components</div><div class="arch-item-value">PDS → Relay → AppView</div></div>
+          <div class="arch-item"><div class="arch-item-label">Algorithms</div><div class="arch-item-value">Custom feed generators (open)</div></div>
+          <div class="arch-item"><div class="arch-item-label">Inspiration</div><div class="arch-item-value">ActivityPub, SSB, Fediverse</div></div>
+        </div>
+      </div>
+      <div class="body-section">
+        <h3>Research Papers & Key Resources</h3>
+        <div class="paper-list">
+          <div class="paper-item gold">
+            <div class="paper-title">The AT Protocol (atproto) Specification</div>
+            <div class="paper-meta">Bluesky Team · 2023</div>
+            <div class="paper-desc">The full technical specification for the Authenticated Transfer Protocol. Covers lexicons (schema language), repo structure (Merkle trees), DIDs, handle resolution, and the PDS/Relay/AppView architecture.</div>
+            <a class="paper-link" href="https://atproto.com/guides/overview" target="_blank">→ atproto.com</a>
+          </div>
+          <div class="paper-item">
+            <div class="paper-title">Decentralized Social Networks</div>
+            <div class="paper-meta">Raman et al. · IMC 2019</div>
+            <div class="paper-desc">Measurement study of Mastodon/Fediverse. Covers federation dynamics, content moderation challenges, and cross-instance data distribution — directly applicable to Bluesky's design decisions.</div>
+            <a class="paper-link" href="https://dl.acm.org/doi/10.1145/3355369.3355572" target="_blank">→ ACM DL</a>
+          </div>
+          <div class="paper-item green">
+            <div class="paper-title">Decentralized Identifiers (DIDs) Specification</div>
+            <div class="paper-meta">W3C · 2022</div>
+            <div class="paper-desc">The W3C standard for DIDs used in Bluesky. A DID is a self-sovereign identifier cryptographically bound to a key pair. Enables portability without a central authority (similar to domain ownership).</div>
+            <a class="paper-link" href="https://www.w3.org/TR/did-core/" target="_blank">→ W3C Spec</a>
+          </div>
+          <div class="paper-item pink">
+            <div class="paper-title">Merkle DAGs and Content-Addressed Storage</div>
+            <div class="paper-meta">Benet · IPFS Whitepaper · 2014</div>
+            <div class="paper-desc">IPFS whitepaper covering Merkle DAGs — the data structure Bluesky uses for signed user repositories. Content-addressing ensures data authenticity and enables verifiable history.</div>
+            <a class="paper-link" href="https://ipfs.io/ipfs/QmR7GSQM93Cx5eAg6a6yRzNde1FQv7uL6X1o4k7zrJa3LX/ipfs.draft3.pdf" target="_blank">→ PDF</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 12 Slack -->
+  <div class="topic-card" id="slack">
+    <div class="topic-header" onclick="toggleCard(this)">
+      <div class="topic-num">12</div>
+      <div class="topic-title-wrap">
+        <h2>How Slack Works</h2>
+        <div class="topic-tags">
+          <span class="tag tag-blue">WebSocket</span>
+          <span class="tag tag-green">Channel Fan-out</span>
+          <span class="tag tag-gold">Message Search</span>
+          <span class="tag tag-pink">Presence</span>
+        </div>
+      </div>
+      <div class="expand-icon">▾</div>
+    </div>
+    <div class="topic-body">
+      <div class="body-section">
+        <h3>System Overview</h3>
+        <p>Slack maintains persistent WebSocket connections to every active client. When a message is sent to a channel with 1000 members, Slack must fan out that message to all 1000 connections simultaneously. The "presence" system (online/typing indicators) generates 10x more traffic than messages themselves. Slack uses Vitess (MySQL sharding) for message storage and Elasticsearch for search across billions of messages.</p>
+        <div class="arch-grid">
+          <div class="arch-item"><div class="arch-item-label">Connection</div><div class="arch-item-value">WebSocket (persistent)</div></div>
+          <div class="arch-item"><div class="arch-item-label">Message Store</div><div class="arch-item-value">MySQL + Vitess</div></div>
+          <div class="arch-item"><div class="arch-item-label">Search</div><div class="arch-item-value">Elasticsearch</div></div>
+          <div class="arch-item"><div class="arch-item-label">Cache</div><div class="arch-item-value">Memcached</div></div>
+          <div class="arch-item"><div class="arch-item-label">Fan-out</div><div class="arch-item-value">Channel membership lookup → push</div></div>
+          <div class="arch-item"><div class="arch-item-label">Job Queue</div><div class="arch-item-value">Redis</div></div>
+        </div>
+      </div>
+      <div class="body-section">
+        <h3>Research Papers & Key Resources</h3>
+        <div class="paper-list">
+          <div class="paper-item gold">
+            <div class="paper-title">Slack's Architecture: Moving to a Cellular Design</div>
+            <div class="paper-meta">Slack Engineering · 2020</div>
+            <div class="paper-desc">Describes Slack's "grid" architecture transition where each workspace's message store is isolated in its own cell (MySQL shard), enabling independent scaling and fault isolation per workspace.</div>
+            <a class="paper-link" href="https://slack.engineering/flannel-an-application-level-edge-cache-to-make-slack-scale/" target="_blank">→ Slack Eng</a>
+          </div>
+          <div class="paper-item">
+            <div class="paper-title">Vitess: Scaling MySQL for the Web</div>
+            <div class="paper-meta">Sougou · YouTube/PlanetScale · 2011</div>
+            <div class="paper-desc">Vitess provides MySQL sharding with connection pooling and query routing. Used by Slack and YouTube to scale MySQL horizontally. Covers resharding, vertical splits, and cross-shard queries.</div>
+            <a class="paper-link" href="https://vitess.io/docs/overview/" target="_blank">→ Vitess Docs</a>
+          </div>
+          <div class="paper-item green">
+            <div class="paper-title">Flannel: An Application-Level Edge Cache for Slack</div>
+            <div class="paper-meta">Slack Engineering · 2019</div>
+            <div class="paper-desc">Slack built an edge caching layer (Flannel) using Memcached to cache per-workspace session membership data, dramatically reducing database load during message fan-out to large channels.</div>
+            <a class="paper-link" href="https://slack.engineering/flannel-an-application-level-edge-cache-to-make-slack-scale/" target="_blank">→ Blog</a>
+          </div>
+          <div class="paper-item pink">
+            <div class="paper-title">Presence at Scale: Tracking Millions of Users</div>
+            <div class="paper-meta">Slack Engineering · 2017</div>
+            <div class="paper-desc">The presence system (green dot = online) generates enormous traffic. Slack's solution: gossip-based presence aggregation with hysteresis (delay offline status to avoid flicker).</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 13 Stripe -->
+  <div class="topic-card" id="stripe">
+    <div class="topic-header" onclick="toggleCard(this)">
+      <div class="topic-num">13</div>
+      <div class="topic-title-wrap">
+        <h2>How Stripe Prevents Double Payment Using Idempotent API</h2>
+        <div class="topic-tags">
+          <span class="tag tag-blue">Idempotency Keys</span>
+          <span class="tag tag-green">Exactly-Once</span>
+          <span class="tag tag-gold">Distributed Transactions</span>
+          <span class="tag tag-pink">Payment Systems</span>
+        </div>
+      </div>
+      <div class="expand-icon">▾</div>
+    </div>
+    <div class="topic-body">
+      <div class="body-section">
+        <h3>System Overview</h3>
+        <p>In payment systems, network retries can cause duplicate charges. Stripe's solution: clients include an idempotency key (a UUID) with each request. Stripe stores the key + response in a database. If a retry comes in with the same key, Stripe returns the cached response without re-executing. The key must be scoped to a user account, stored before the charge, and garbage collected after 24 hours.</p>
+        <div class="arch-grid">
+          <div class="arch-item"><div class="arch-item-label">Idempotency Key</div><div class="arch-item-value">UUID, 24hr TTL</div></div>
+          <div class="arch-item"><div class="arch-item-label">Storage</div><div class="arch-item-value">Database (before charge)</div></div>
+          <div class="arch-item"><div class="arch-item-label">Retry Strategy</div><div class="arch-item-value">Exponential backoff + jitter</div></div>
+          <div class="arch-item"><div class="arch-item-label">Consistency</div><div class="arch-item-value">Serializable isolation (Postgres)</div></div>
+          <div class="arch-item"><div class="arch-item-label">Core DB</div><div class="arch-item-value">PostgreSQL + Vitess</div></div>
+          <div class="arch-item"><div class="arch-item-label">Events</div><div class="arch-item-value">Kafka for async webhooks</div></div>
+        </div>
+      </div>
+      <div class="body-section">
+        <h3>The Danger of Retries Without Idempotency</h3>
+        <div class="insight-box"><p>In a distributed system, "did the request succeed?" is unknowable if you lose the connection after sending but before receiving the response. Without idempotency keys, every retry risks a double charge. The fix: generate the idempotency key client-side, store it server-side before acting, and return the same result for any retry with that key.</p></div>
+      </div>
+      <div class="body-section">
+        <h3>Research Papers & Key Resources</h3>
+        <div class="paper-list">
+          <div class="paper-item gold">
+            <div class="paper-title">Idempotency</div>
+            <div class="paper-meta">Stripe Engineering Blog · Brandur Leach · 2017</div>
+            <div class="paper-desc">The definitive blog post on idempotency in payments. Covers idempotency keys, database-level atomicity, API design patterns, and how to handle partial failures in multi-step payment workflows.</div>
+            <a class="paper-link" href="https://stripe.com/blog/idempotency" target="_blank">→ Stripe Blog</a>
+          </div>
+          <div class="paper-item">
+            <div class="paper-title">Exactly-Once Delivery and Transactional Messaging at Scale</div>
+            <div class="paper-meta">Kafka Engineering · 2017</div>
+            <div class="paper-desc">Explains the producer idempotency + transactions API in Kafka 0.11, enabling exactly-once message delivery — directly used in Stripe's event pipeline for webhook delivery.</div>
+            <a class="paper-link" href="https://www.confluent.io/blog/exactly-once-semantics-are-possible-heres-how-apache-kafka-does-it/" target="_blank">→ Blog</a>
+          </div>
+          <div class="paper-item green">
+            <div class="paper-title">Designing Data-Intensive Applications (Chapter 9: Consistency and Consensus)</div>
+            <div class="paper-meta">Kleppmann · O'Reilly · 2017 (Book)</div>
+            <div class="paper-desc">The industry's most-read book on distributed systems. Chapter 9 covers linearizability, distributed transactions, and exactly-once semantics — the theoretical foundation for idempotent APIs.</div>
+            <a class="paper-link" href="https://www.oreilly.com/library/view/designing-data-intensive-applications/9781491903063/" target="_blank">→ O'Reilly</a>
+          </div>
+          <div class="paper-item pink">
+            <div class="paper-title">Patterns for Distributed Transactions within a Microservices Architecture</div>
+            <div class="paper-meta">Richardson · 2019</div>
+            <div class="paper-desc">Covers the Saga pattern (choreography and orchestration) for multi-step financial workflows like a payment: reserve funds → charge card → update ledger → issue receipt. Each step must be idempotent.</div>
+            <a class="paper-link" href="https://microservices.io/patterns/data/saga.html" target="_blank">→ Article</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 14 ChatGPT -->
+  <div class="topic-card" id="chatgpt">
+    <div class="topic-header" onclick="toggleCard(this)">
+      <div class="topic-num">14</div>
+      <div class="topic-title-wrap">
+        <h2>How ChatGPT Works</h2>
+        <div class="topic-tags">
+          <span class="tag tag-blue">Transformer Inference</span>
+          <span class="tag tag-green">Token Streaming</span>
+          <span class="tag tag-gold">RLHF</span>
+          <span class="tag tag-pink">GPU Clusters</span>
+        </div>
+      </div>
+      <div class="expand-icon">▾</div>
+    </div>
+    <div class="topic-body">
+      <div class="body-section">
+        <h3>System Overview</h3>
+        <p>ChatGPT is a GPT-4-class autoregressive Transformer that generates responses token by token. Inference is computationally dominated by matrix multiplications on GPU tensors. To serve millions of requests, OpenAI runs massive GPU clusters (A100/H100) with tensor parallelism (split model layers across GPUs) and KV-cache (cache K/V attention matrices to avoid recomputation per token). Responses are streamed via Server-Sent Events (SSE).</p>
+        <div class="arch-grid">
+          <div class="arch-item"><div class="arch-item-label">Architecture</div><div class="arch-item-value">GPT (Transformer Decoder)</div></div>
+          <div class="arch-item"><div class="arch-item-label">Training</div><div class="arch-item-value">RLHF (PPO + SFT)</div></div>
+          <div class="arch-item"><div class="arch-item-label">Parallelism</div><div class="arch-item-value">Tensor + Pipeline + Data</div></div>
+          <div class="arch-item"><div class="arch-item-label">Hardware</div><div class="arch-item-value">NVIDIA A100/H100 clusters</div></div>
+          <div class="arch-item"><div class="arch-item-label">Optimization</div><div class="arch-item-value">KV Cache, FlashAttention</div></div>
+          <div class="arch-item"><div class="arch-item-label">Streaming</div><div class="arch-item-value">Server-Sent Events (SSE)</div></div>
+        </div>
+      </div>
+      <div class="body-section">
+        <h3>Research Papers & Key Resources</h3>
+        <div class="paper-list">
+          <div class="paper-item gold">
+            <div class="paper-title">Attention Is All You Need</div>
+            <div class="paper-meta">Vaswani et al. · Google Brain · NeurIPS 2017</div>
+            <div class="paper-desc">The Transformer paper — the architectural foundation of GPT, BERT, and all modern LLMs. Introduces multi-head self-attention, positional encoding, and the encoder-decoder architecture. Arguably the most important ML paper of the decade.</div>
+            <a class="paper-link" href="https://arxiv.org/abs/1706.03762" target="_blank">→ arXiv</a>
+          </div>
+          <div class="paper-item">
+            <div class="paper-title">Language Models are Few-Shot Learners (GPT-3)</div>
+            <div class="paper-meta">Brown et al. · OpenAI · NeurIPS 2020</div>
+            <div class="paper-desc">GPT-3 paper demonstrating in-context learning at scale. Directly precedes ChatGPT's architecture. Shows that scale alone (175B params) produces remarkable few-shot capabilities without fine-tuning.</div>
+            <a class="paper-link" href="https://arxiv.org/abs/2005.14165" target="_blank">→ arXiv</a>
+          </div>
+          <div class="paper-item green">
+            <div class="paper-title">Training Language Models to Follow Instructions with Human Feedback (InstructGPT)</div>
+            <div class="paper-meta">Ouyang et al. · OpenAI · NeurIPS 2022</div>
+            <div class="paper-desc">The RLHF paper behind ChatGPT. Shows how SFT + reward model + PPO fine-tuning aligns LLMs with human preferences. A 1.3B InstructGPT model outperforms 175B GPT-3 on human evaluations.</div>
+            <a class="paper-link" href="https://arxiv.org/abs/2203.02155" target="_blank">→ arXiv</a>
+          </div>
+          <div class="paper-item pink">
+            <div class="paper-title">FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness</div>
+            <div class="paper-meta">Dao et al. · Stanford · NeurIPS 2022</div>
+            <div class="paper-desc">Reduces the memory complexity of attention from O(n²) to O(n) by tiling GPU SRAM operations. Enables 2-4x faster training and inference for long-context models. Used by every major LLM serving system.</div>
+            <a class="paper-link" href="https://arxiv.org/abs/2205.14135" target="_blank">→ arXiv</a>
+          </div>
+          <div class="paper-item">
+            <div class="paper-title">Efficient Large Scale Language Modeling with Mixtures of Experts</div>
+            <div class="paper-meta">Artetxe et al. · Meta AI · EMNLP 2021</div>
+            <div class="paper-desc">MoE architecture (suspected in GPT-4) where only a subset of parameters activate per token. Achieves dense model quality at a fraction of the compute cost. Key to serving trillion-parameter models economically.</div>
+            <a class="paper-link" href="https://arxiv.org/abs/2112.10684" target="_blank">→ arXiv</a>
+          </div>
+          <div class="paper-item gold">
+            <div class="paper-title">Orca: A Distributed Serving System for Transformer-Based Generative Models</div>
+            <div class="paper-meta">Yu et al. · USENIX OSDI 2022</div>
+            <div class="paper-desc">Introduces continuous batching for LLM inference — serving multiple requests simultaneously, inserting new requests mid-batch. Used by vLLM and TGI. Dramatically improves GPU utilization.</div>
+            <a class="paper-link" href="https://www.usenix.org/conference/osdi22/presentation/yu" target="_blank">→ USENIX</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 15 Twitter Timeline -->
+  <div class="topic-card" id="twitter">
+    <div class="topic-header" onclick="toggleCard(this)">
+      <div class="topic-num">15</div>
+      <div class="topic-title-wrap">
+        <h2>How Twitter Timeline Works</h2>
+        <div class="topic-tags">
+          <span class="tag tag-blue">Fan-out on Write</span>
+          <span class="tag tag-green">Celebrity Problem</span>
+          <span class="tag tag-gold">Redis Timeline Cache</span>
+          <span class="tag tag-pink">Hybrid Approach</span>
+        </div>
+      </div>
+      <div class="expand-icon">▾</div>
+    </div>
+    <div class="topic-body">
+      <div class="body-section">
+        <h3>System Overview</h3>
+        <p>Twitter's timeline is a merge of tweets from all accounts you follow, sorted by recency. Twitter uses a hybrid fan-out: when a normal user tweets, their tweet is immediately pushed (fan-out on write) to all followers' Redis timeline caches. But for celebrities (Obama, Beyoncé — millions of followers), fan-out would take minutes. So Twitter uses fan-out on read for celebrities, merging their tweets at query time.</p>
+        <div class="arch-grid">
+          <div class="arch-item"><div class="arch-item-label">Timeline Cache</div><div class="arch-item-value">Redis (sorted set per user)</div></div>
+          <div class="arch-item"><div class="arch-item-label">Fan-out (normal)</div><div class="arch-item-value">Write-time push to followers</div></div>
+          <div class="arch-item"><div class="arch-item-label">Fan-out (celebrity)</div><div class="arch-item-value">Read-time merge</div></div>
+          <div class="arch-item"><div class="arch-item-label">Tweet Store</div><div class="arch-item-value">Manhattan (Twitter's own KV)</div></div>
+          <div class="arch-item"><div class="arch-item-label">Media</div><div class="arch-item-value">S3 + Fastly CDN</div></div>
+          <div class="arch-item"><div class="arch-item-label">Search</div><div class="arch-item-value">Earlybird (Lucene-based)</div></div>
+        </div>
+      </div>
+      <div class="body-section">
+        <h3>Research Papers & Key Resources</h3>
+        <div class="paper-list">
+          <div class="paper-item gold">
+            <div class="paper-title">Rainbird: Realtime Analytics at Twitter</div>
+            <div class="paper-meta">Twitter Engineering · 2011</div>
+            <div class="paper-desc">Twitter's real-time counters system (like/retweet counts). Uses Cassandra with counter columns. Foundational to understanding Twitter's data infrastructure that serves the timeline system.</div>
+            <a class="paper-link" href="https://blog.twitter.com/engineering/en_us/a/2011/rainbird-realtime-analytics-at-twitter" target="_blank">→ Twitter Blog</a>
+          </div>
+          <div class="paper-item">
+            <div class="paper-title">The Architecture Twitter Uses to Deal with 150M+ Active Users</div>
+            <div class="paper-meta">High Scalability · 2013</div>
+            <div class="paper-desc">Comprehensive breakdown of Twitter's 2013 architecture: Flock (social graph), Gizzard (sharding), Snowflake (ID generation), Manhattan (NoSQL), and the timeline fanout service.</div>
+            <a class="paper-link" href="http://highscalability.com/blog/2013/7/8/the-architecture-twitter-uses-to-deal-with-150m-active-users.html" target="_blank">→ Article</a>
+          </div>
+          <div class="paper-item green">
+            <div class="paper-title">Earlybird: Real-Time Search at Twitter</div>
+            <div class="paper-meta">Busch et al. · Twitter · ICDE 2012</div>
+            <div class="paper-desc">Twitter's real-time search engine based on Lucene. Tweets are indexed in seconds. Uses an inverted index with 100% in-memory segments for recency, and disk for older tweets.</div>
+          </div>
+          <div class="paper-item pink">
+            <div class="paper-title">Manhattan: Twitter's Real-Time, Multi-Tenant Distributed Database</div>
+            <div class="paper-meta">Twitter Engineering · 2014</div>
+            <div class="paper-desc">Twitter's custom distributed NoSQL database replacing Cassandra for their most critical workloads. Covers their approach to multi-tenancy, strong consistency, and predictable latency.</div>
+            <a class="paper-link" href="https://blog.twitter.com/engineering/en_us/a/2014/manhattan-our-real-time-multi-tenant-distributed-database-for-twitter-scale" target="_blank">→ Blog</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 16 Amazon S3 -->
+  <div class="topic-card" id="s3">
+    <div class="topic-header" onclick="toggleCard(this)">
+      <div class="topic-num">16</div>
+      <div class="topic-title-wrap">
+        <h2>How Amazon S3 Works</h2>
+        <div class="topic-tags">
+          <span class="tag tag-blue">Object Storage</span>
+          <span class="tag tag-green">Erasure Coding</span>
+          <span class="tag tag-gold">11-Nine Durability</span>
+          <span class="tag tag-pink">Bitrot Detection</span>
+        </div>
+      </div>
+      <div class="expand-icon">▾</div>
+    </div>
+    <div class="topic-body">
+      <div class="body-section">
+        <h3>System Overview</h3>
+        <p>S3 stores trillions of objects with 99.999999999% (11 nines) durability by distributing erasure-coded chunks across multiple Availability Zones. An object is split into k data chunks + m parity chunks using Reed-Solomon coding; any m failures can be tolerated. S3's metadata (bucket/key → object location) is stored in a separate distributed database. S3 uses "scrubbing" to detect and repair bitrot proactively.</p>
+        <div class="arch-grid">
+          <div class="arch-item"><div class="arch-item-label">Durability</div><div class="arch-item-value">99.999999999% (11 nines)</div></div>
+          <div class="arch-item"><div class="arch-item-label">Coding</div><div class="arch-item-value">Reed-Solomon erasure coding</div></div>
+          <div class="arch-item"><div class="arch-item-label">Replication</div><div class="arch-item-value">≥3 Availability Zones</div></div>
+          <div class="arch-item"><div class="arch-item-label">Consistency</div><div class="arch-item-value">Strong read-after-write (2020)</div></div>
+          <div class="arch-item"><div class="arch-item-label">Storage Classes</div><div class="arch-item-value">Standard, IA, Glacier, etc.</div></div>
+          <div class="arch-item"><div class="arch-item-label">Objects Stored</div><div class="arch-item-value">~280 Trillion (2023 estimate)</div></div>
+        </div>
+      </div>
+      <div class="body-section">
+        <h3>Research Papers & Key Resources</h3>
+        <div class="paper-list">
+          <div class="paper-item gold">
+            <div class="paper-title">Amazon S3 — How It Works (AWS Documentation)</div>
+            <div class="paper-meta">Amazon Web Services · 2023</div>
+            <div class="paper-desc">Official documentation covering bucket policies, storage classes, lifecycle rules, and replication. The most authoritative source on S3's operational behavior and architecture decisions.</div>
+            <a class="paper-link" href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/Welcome.html" target="_blank">→ AWS Docs</a>
+          </div>
+          <div class="paper-item">
+            <div class="paper-title">The Google File System</div>
+            <div class="paper-meta">Ghemawat, Gobioff, Leung · Google · SOSP 2003</div>
+            <div class="paper-desc">GFS inspired S3's chunked storage model. First paper to propose treating component failures as the norm, not the exception. Pioneered chunk replication and a master for metadata. Essential reading for object storage.</div>
+            <a class="paper-link" href="https://static.googleusercontent.com/media/research.google.com/en//archive/gfs-sosp2003.pdf" target="_blank">→ Free PDF</a>
+          </div>
+          <div class="paper-item green">
+            <div class="paper-title">Erasure Coding in Windows Azure Storage</div>
+            <div class="paper-meta">Huang et al. · Microsoft · USENIX ATC 2012</div>
+            <div class="paper-desc">Azure's erasure coding approach (similar to S3). Reduces storage overhead by 1.33x vs 3x replication while maintaining durability. Describes the Local Reconstruction Code (LRC) design.</div>
+            <a class="paper-link" href="https://www.usenix.org/system/files/conference/atc12/atc12-final181_0.pdf" target="_blank">→ Free PDF</a>
+          </div>
+          <div class="paper-item pink">
+            <div class="paper-title">Building and Operating a Large Distributed Storage System</div>
+            <div class="paper-meta">Amazon re:Invent Talks · 2022</div>
+            <div class="paper-desc">S3 Principal Engineer Marc Brooker's talks on S3's shuffle sharding, availability design, and how they achieve 11 nines durability. Includes the "shuffle sharding" technique to limit blast radius.</div>
+            <a class="paper-link" href="https://www.allthingsdistributed.com/2023/07/building-and-operating-a-pretty-big-storage-system.html" target="_blank">→ Werner's Blog</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 17 YouTube MySQL -->
+  <div class="topic-card" id="youtube">
+    <div class="topic-header" onclick="toggleCard(this)">
+      <div class="topic-num">17</div>
+      <div class="topic-title-wrap">
+        <h2>How YouTube Supports 2.49 Billion Users with MySQL</h2>
+        <div class="topic-tags">
+          <span class="tag tag-blue">Vitess / MySQL</span>
+          <span class="tag tag-green">Video Transcoding</span>
+          <span class="tag tag-gold">CDN</span>
+          <span class="tag tag-pink">Bigtable</span>
+        </div>
+      </div>
+      <div class="expand-icon">▾</div>
+    </div>
+    <div class="topic-body">
+      <div class="body-section">
+        <h3>System Overview</h3>
+        <p>YouTube is one of the world's largest MySQL deployments, made possible by Vitess — a sharding middleware that makes MySQL horizontally scalable. Uploaded videos go through a transcoding pipeline (500 formats/resolutions per video) using Google's Zencoder-like service on GCP. Video chunks are served from Google's CDN. YouTube uses Bigtable for view counts and recommendation features, and Spanner for globally consistent data.</p>
+        <div class="arch-grid">
+          <div class="arch-item"><div class="arch-item-label">Primary DB</div><div class="arch-item-value">MySQL + Vitess (sharding)</div></div>
+          <div class="arch-item"><div class="arch-item-label">Video Storage</div><div class="arch-item-value">Google Colossus (GFS2)</div></div>
+          <div class="arch-item"><div class="arch-item-label">Transcoding</div><div class="arch-item-value">500+ format/resolution combos</div></div>
+          <div class="arch-item"><div class="arch-item-label">Streaming</div><div class="arch-item-value">DASH / HLS (adaptive bitrate)</div></div>
+          <div class="arch-item"><div class="arch-item-label">Counts</div><div class="arch-item-value">Bigtable (approx. at scale)</div></div>
+          <div class="arch-item"><div class="arch-item-label">Reco</div><div class="arch-item-value">Deep Neural Nets (DNN-based)</div></div>
+        </div>
+      </div>
+      <div class="body-section">
+        <h3>Research Papers & Key Resources</h3>
+        <div class="paper-list">
+          <div class="paper-item gold">
+            <div class="paper-title">Vitess: Scalable MySQL for the Web</div>
+            <div class="paper-meta">Sougou · YouTube · VLDB 2012</div>
+            <div class="paper-desc">Original paper on Vitess by its YouTube creator. Describes connection pooling, query routing to shards, row-based replication management, and how it makes MySQL horizontally scalable without application changes.</div>
+            <a class="paper-link" href="https://vitess.io/docs/overview/scalability-philosophy/" target="_blank">→ Vitess</a>
+          </div>
+          <div class="paper-item">
+            <div class="paper-title">Deep Neural Networks for YouTube Recommendations</div>
+            <div class="paper-meta">Covington, Adams, Sargin · Google · RecSys 2016</div>
+            <div class="paper-desc">YouTube's 2-stage recommendation system: candidate generation (recall ~100 videos from millions) + ranking (precision scoring). Uses DNN with user watch history embeddings. One of the most-cited recommendation papers.</div>
+            <a class="paper-link" href="https://research.google.com/pubs/pub45530.html" target="_blank">→ Google Research</a>
+          </div>
+          <div class="paper-item green">
+            <div class="paper-title">Bigtable: A Distributed Storage System for Structured Data</div>
+            <div class="paper-meta">Chang et al. · Google · TOCS 2008</div>
+            <div class="paper-desc">Bigtable powers YouTube's view counter, metadata, and ML feature store. Wide-column store with row-key range scans. Handles millions of reads/writes per second. Inspired Cassandra, HBase.</div>
+            <a class="paper-link" href="https://research.google.com/archive/bigtable-osdi06.pdf" target="_blank">→ Free PDF</a>
+          </div>
+          <div class="paper-item pink">
+            <div class="paper-title">YouTube View Counts: Accuracy vs Speed Trade-off</div>
+            <div class="paper-meta">YouTube Engineering · 2012</div>
+            <div class="paper-desc">Why YouTube freezes view counts at 300 and batch-updates them. At scale, approximate counting (HyperLogLog) and deferred writes are necessary to avoid hot-row contention on viral videos.</div>
+            <a class="paper-link" href="https://youtube-eng.googleblog.com/2012/03/stabilizing-view-counts-at-youtube.html" target="_blank">→ YouTube Blog</a>
+          </div>
+          <div class="paper-item">
+            <div class="paper-title">MPEG-DASH Standard: Dynamic Adaptive Streaming over HTTP</div>
+            <div class="paper-meta">ISO/IEC 23009-1 · 2012</div>
+            <div class="paper-desc">The international standard for adaptive bitrate video streaming used by YouTube. Client switches between quality levels based on available bandwidth, eliminating buffering.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 18 AWS Scale -->
+  <div class="topic-card" id="aws-scale">
+    <div class="topic-header" onclick="toggleCard(this)">
+      <div class="topic-num">18</div>
+      <div class="topic-title-wrap">
+        <h2>How to Scale an App to 10 Million Users on AWS</h2>
+        <div class="topic-tags">
+          <span class="tag tag-blue">Auto Scaling</span>
+          <span class="tag tag-green">CDN / CloudFront</span>
+          <span class="tag tag-gold">Database Tiers</span>
+          <span class="tag tag-pink">Multi-Region</span>
+        </div>
+      </div>
+      <div class="expand-icon">▾</div>
+    </div>
+    <div class="topic-body">
+      <div class="body-section">
+        <h3>Scaling Progression</h3>
+        <p><strong>1 user:</strong> Single EC2 + single RDS. <br>
+        <strong>1K users:</strong> Add ELB, move to RDS Multi-AZ, add ElastiCache (Redis). <br>
+        <strong>100K users:</strong> Add CloudFront CDN, read replicas on RDS, separate static asset servers, Route 53 health checks. <br>
+        <strong>1M users:</strong> RDS Aurora (auto-scaling), S3 for media, SQS/SNS for async, EC2 Auto Scaling Groups, Lambda for edge compute. <br>
+        <strong>10M users:</strong> Multi-region Active-Active, Global Accelerator, DynamoDB Global Tables, database sharding or migration to Aurora Global, chaos engineering.</p>
+      </div>
+      <div class="body-section">
+        <h3>Research Papers & Key Resources</h3>
+        <div class="paper-list">
+          <div class="paper-item gold">
+            <div class="paper-title">On Designing and Deploying Internet-Scale Services</div>
+            <div class="paper-meta">Hamilton · Microsoft · USENIX LISA 2007</div>
+            <div class="paper-desc">James Hamilton's seminal paper on what it takes to build internet-scale services. Covers operability, health monitoring, graceful degradation, automatic recovery, and avoiding single points of failure. Required reading.</div>
+            <a class="paper-link" href="https://www.usenix.org/legacy/events/lisa07/tech/full_papers/hamilton/hamilton.pdf" target="_blank">→ Free PDF</a>
+          </div>
+          <div class="paper-item">
+            <div class="paper-title">The AWS Well-Architected Framework</div>
+            <div class="paper-meta">Amazon Web Services · 2023</div>
+            <div class="paper-desc">AWS's official framework covering Operational Excellence, Security, Reliability, Performance Efficiency, Cost Optimization, and Sustainability. The practical blueprint for scaling applications on AWS.</div>
+            <a class="paper-link" href="https://docs.aws.amazon.com/wellarchitected/latest/framework/welcome.html" target="_blank">→ AWS</a>
+          </div>
+          <div class="paper-item green">
+            <div class="paper-title">Chaos Engineering: Building Confidence in System Behavior through Experiments</div>
+            <div class="paper-meta">Basiri et al. · Netflix · IEEE Software 2016</div>
+            <div class="paper-desc">Netflix Chaos Monkey and the chaos engineering discipline. At 10M+ users, you must assume failures are happening at all times. This paper establishes the principles of proactive failure injection.</div>
+            <a class="paper-link" href="https://ieeexplore.ieee.org/document/7436642" target="_blank">→ IEEE</a>
+          </div>
+          <div class="paper-item pink">
+            <div class="paper-title">Harvest, Yield, and Scalable Tolerant Systems</div>
+            <div class="paper-meta">Fox & Brewer · HOTOS 1999</div>
+            <div class="paper-desc">Introduces the harvest/yield framing: degrade harvest (return partial data) before yield (availability) drops. Real-world application of CAP theorem for 10M-user systems.</div>
+            <a class="paper-link" href="https://radlab.cs.berkeley.edu/people/fox/static/pubs/pdf/c18.pdf" target="_blank">→ Free PDF</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end section-all -->
+
+<!-- ───── MESSAGING ───── -->
+<div class="section" id="section-messaging">
+  <p style="color:var(--muted);margin-bottom:24px;font-size:14px;">Showing topics related to messaging, streaming, and event-driven architecture.</p>
+  <!-- Kafka, WhatsApp, Slack, Bluesky, Twitter cards are shown here -->
+  <script>document.addEventListener('DOMContentLoaded',()=>{const ids=['kafka','whatsapp','slack','bluesky','twitter'];const src=document.getElementById('section-all');const dst=document.getElementById('section-messaging');ids.forEach(id=>{const el=src.querySelector('#'+id);if(el)dst.appendChild(el.cloneNode(true));});});</script>
+</div>
+<div class="section" id="section-storage">
+  <p style="color:var(--muted);margin-bottom:24px;font-size:14px;">Showing topics related to storage, databases, and data systems.</p>
+</div>
+<div class="section" id="section-platforms">
+  <p style="color:var(--muted);margin-bottom:24px;font-size:14px;">Showing topics related to platforms and consumer applications.</p>
+</div>
+<div class="section" id="section-infra">
+  <p style="color:var(--muted);margin-bottom:24px;font-size:14px;">Showing topics related to infrastructure, cloud, and large-scale systems.</p>
+</div>
+
+<!-- ───────────────── DISTRIBUTED SYSTEMS ───────────────── -->
+<div class="section" id="section-distributed">
+  <div class="topic-card open" id="distributed">
+    <div class="topic-header" onclick="toggleCard(this)">
+      <div class="topic-num" style="color:rgba(212,168,67,0.4);">★</div>
+      <div class="topic-title-wrap">
+        <h2>Distributed Database Systems — Deep Dive</h2>
+        <div class="topic-tags">
+          <span class="tag tag-gold">Consensus</span>
+          <span class="tag tag-blue">CAP Theorem</span>
+          <span class="tag tag-green">Replication</span>
+          <span class="tag tag-pink">Sharding</span>
+        </div>
+      </div>
+      <div class="expand-icon">▾</div>
+    </div>
+    <div class="topic-body">
+
+      <div class="body-section">
+        <h3>Foundational Concepts</h3>
+        <div class="insight-box"><p>The CAP Theorem (Brewer, 2000) states a distributed system cannot simultaneously guarantee Consistency, Availability, and Partition Tolerance. In practice, network partitions are unavoidable, so systems choose between CP (strong consistency, may be unavailable) or AP (always available, may be inconsistent). Most modern systems are tunable between the two.</p></div>
+      </div>
+
+      <div class="body-section">
+        <h3>The Essential 10 Papers — Every Distributed Systems Engineer Must Read</h3>
+        <div class="paper-list">
+          <div class="paper-item gold">
+            <div class="paper-title">1. The Google File System (GFS)</div>
+            <div class="paper-meta">Ghemawat, Gobioff, Leung · Google · SOSP 2003</div>
+            <div class="paper-desc">Introduced fault-tolerant distributed file storage on commodity hardware. Chunked storage (64MB), master-slave coordination, pipelined replication. Inspired HDFS, Amazon S3's architecture. The paper that started modern distributed storage.</div>
+            <a class="paper-link" href="https://static.googleusercontent.com/media/research.google.com/en//archive/gfs-sosp2003.pdf" target="_blank">→ Free PDF</a>
+          </div>
+          <div class="paper-item">
+            <div class="paper-title">2. MapReduce: Simplified Data Processing on Large Clusters</div>
+            <div class="paper-meta">Dean & Ghemawat · Google · OSDI 2004</div>
+            <div class="paper-desc">Programming model for parallel processing of large datasets. Map phase (transform) → shuffle (redistribute by key) → Reduce (aggregate). Directly inspired Apache Hadoop. Revolutionized big data processing.</div>
+            <a class="paper-link" href="https://research.google.com/archive/mapreduce-osdi04.pdf" target="_blank">→ Free PDF</a>
+          </div>
+          <div class="paper-item green">
+            <div class="paper-title">3. Bigtable: A Distributed Storage System for Structured Data</div>
+            <div class="paper-meta">Chang et al. · Google · TOCS 2008</div>
+            <div class="paper-desc">Wide-column NoSQL database. Data model: (row key, column family:qualifier, timestamp) → value. Tablets split at 200MB, assigned to Tablet Servers via Master. Inspired Cassandra, HBase, DynamoDB.</div>
+            <a class="paper-link" href="https://research.google.com/archive/bigtable-osdi06.pdf" target="_blank">→ Free PDF</a>
+          </div>
+          <div class="paper-item pink">
+            <div class="paper-title">4. Dynamo: Amazon's Highly Available Key-Value Store</div>
+            <div class="paper-meta">DeCandia et al. · Amazon · SOSP 2007</div>
+            <div class="paper-desc">Eventual consistency, consistent hashing, vector clocks, quorum reads/writes (R+W>N), Merkle trees for anti-entropy, gossip for membership. Every NoSQL database designer references this paper.</div>
+            <a class="paper-link" href="https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf" target="_blank">→ Free PDF</a>
+          </div>
+          <div class="paper-item gold">
+            <div class="paper-title">5. Cassandra: A Decentralized Structured Storage System</div>
+            <div class="paper-meta">Lakshman & Malik · Facebook · SOSP 2009</div>
+            <div class="paper-desc">Combines Bigtable's data model with Dynamo's distribution model. Tunable consistency (ONE/QUORUM/ALL), wide-column, ring topology, no single point of failure. Now the most-deployed open-source NoSQL DB.</div>
+            <a class="paper-link" href="https://www.cs.cornell.edu/projects/ladis2009/papers/lakshman-ladis2009.pdf" target="_blank">→ Free PDF</a>
+          </div>
+          <div class="paper-item">
+            <div class="paper-title">6. Spanner: Google's Globally-Distributed Database</div>
+            <div class="paper-meta">Corbett et al. · Google · OSDI 2012 / TOCS 2013</div>
+            <div class="paper-desc">First globally distributed database with external consistency. TrueTime API (atomic clocks + GPS) assigns globally ordered timestamps. Enables serializable distributed transactions at global scale. Influenced CockroachDB, YugabyteDB.</div>
+            <a class="paper-link" href="https://research.google.com/archive/spanner-osdi2012.pdf" target="_blank">→ Free PDF</a>
+          </div>
+          <div class="paper-item green">
+            <div class="paper-title">7. In Search of an Understandable Consensus Algorithm (Raft)</div>
+            <div class="paper-meta">Ongaro & Ousterhout · Stanford · USENIX ATC 2014</div>
+            <div class="paper-desc">Raft was designed to be easier to understand than Paxos. Leader election + log replication + safety guarantees. Used in etcd (Kubernetes), CockroachDB, TiKV. The go-to consensus algorithm for new systems.</div>
+            <a class="paper-link" href="https://raft.github.io/raft.pdf" target="_blank">→ Free PDF</a>
+          </div>
+          <div class="paper-item pink">
+            <div class="paper-title">8. Paxos Made Simple</div>
+            <div class="paper-meta">Lamport · Microsoft Research · 2001</div>
+            <div class="paper-desc">The simplest explanation of the Paxos consensus algorithm. Paxos underpins Google Chubby, Google Spanner, Apache Zookeeper, and many distributed databases. A 2-phase protocol: Prepare/Promise then Accept/Accepted.</div>
+            <a class="paper-link" href="https://lamport.azurewebsites.net/pubs/paxos-simple.pdf" target="_blank">→ Free PDF</a>
+          </div>
+          <div class="paper-item gold">
+            <div class="paper-title">9. ZooKeeper: Wait-free Coordination for Internet-Scale Systems</div>
+            <div class="paper-meta">Hunt et al. · Yahoo · USENIX ATC 2010</div>
+            <div class="paper-desc">Distributed coordination service: configuration management, leader election, distributed locks, barriers. Used by Kafka (pre-KRaft), HBase, Storm. ZAB protocol (Zookeeper Atomic Broadcast) is a Paxos variant.</div>
+            <a class="paper-link" href="https://www.usenix.org/legacy/event/atc10/tech/full_papers/Hunt.pdf" target="_blank">→ Free PDF</a>
+          </div>
+          <div class="paper-item">
+            <div class="paper-title">10. Chord: A Scalable P2P Lookup Service for Internet Applications</div>
+            <div class="paper-meta">Stoica et al. · MIT · SIGCOMM 2001</div>
+            <div class="paper-desc">Distributed Hash Table using consistent hashing on a ring. O(log N) lookup, O(log N) routing table per node. Foundational for understanding how Dynamo, Cassandra, and Riak distribute data without a central coordinator.</div>
+            <a class="paper-link" href="https://pdos.csail.mit.edu/papers/chord:sigcomm01/chord_sigcomm.pdf" target="_blank">→ Free PDF</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="body-section">
+        <h3>Advanced Topics — Consistency, Replication & Transactions</h3>
+        <div class="paper-list">
+          <div class="paper-item gold">
+            <div class="paper-title">CAP Twelve Years Later: How the "Rules" Have Changed</div>
+            <div class="paper-meta">Brewer · IEEE Computer · 2012</div>
+            <div class="paper-desc">Brewer himself refines the CAP theorem: the choice between C and A is not binary, partitions are rare in practice, and systems should focus on minimizing impact rather than picking one side permanently.</div>
+            <a class="paper-link" href="https://ieeexplore.ieee.org/document/6133253" target="_blank">→ IEEE</a>
+          </div>
+          <div class="paper-item">
+            <div class="paper-title">Lamport Clocks — Time, Clocks, and the Ordering of Events in a Distributed System</div>
+            <div class="paper-meta">Lamport · ACM · 1978</div>
+            <div class="paper-desc">Foundational paper on logical clocks. In a distributed system, there's no global clock. Lamport clocks assign logical timestamps to events, establishing a partial order (happens-before relation). Prerequisite for understanding vector clocks.</div>
+            <a class="paper-link" href="https://lamport.azurewebsites.net/pubs/time-clocks.pdf" target="_blank">→ Free PDF</a>
+          </div>
+          <div class="paper-item green">
+            <div class="paper-title">Impossibility of Distributed Consensus with One Faulty Process (FLP)</div>
+            <div class="paper-meta">Fischer, Lynch, Paterson · ACM JACM · 1985</div>
+            <div class="paper-desc">The FLP impossibility result: in an asynchronous system with even one potentially faulty process, there is no deterministic algorithm that guarantees consensus. This is why practical systems use timeouts and randomization.</div>
+          </div>
+          <div class="paper-item pink">
+            <div class="paper-title">A Comprehensive Study of Convergent and Commutative Replicated Data Types</div>
+            <div class="paper-meta">Shapiro et al. · INRIA · 2011 (CRDTs)</div>
+            <div class="paper-desc">The seminal CRDT paper. Introduces state-based (CvRDT) and operation-based (CmRDT) replicated data types that converge without coordination. Used in Riak, Redis, Figma, Notion, and Bluesky's data model.</div>
+            <a class="paper-link" href="https://hal.inria.fr/inria-00555588/document" target="_blank">→ Free PDF</a>
+          </div>
+          <div class="paper-item">
+            <div class="paper-title">The Byzantine Generals Problem</div>
+            <div class="paper-meta">Lamport, Shostak, Pease · ACM TPLS · 1982</div>
+            <div class="paper-desc">Consensus in the presence of traitors (malicious nodes). BFT (Byzantine Fault Tolerant) consensus requires 3f+1 nodes to tolerate f Byzantine failures. Foundation for blockchain consensus (PBFT, HotStuff).</div>
+            <a class="paper-link" href="https://lamport.azurewebsites.net/pubs/byz.pdf" target="_blank">→ Free PDF</a>
+          </div>
+          <div class="paper-item green">
+            <div class="paper-title">Percolator: Large-Scale Incremental Processing Using Distributed Transactions and Notifications</div>
+            <div class="paper-meta">Peng & Dabek · Google · OSDI 2010</div>
+            <div class="paper-desc">Google's distributed transaction layer over Bigtable (used by Google Search's index). Introduces optimistic concurrency via MVCC with a two-phase commit protocol backed by Chubby locks.</div>
+            <a class="paper-link" href="https://research.google.com/pubs/archive/36726.pdf" target="_blank">→ Free PDF</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="body-section">
+        <h3>Modern Distributed Databases — Research & Architecture</h3>
+        <div class="paper-list">
+          <div class="paper-item gold">
+            <div class="paper-title">CockroachDB: The Resilient Geo-Distributed SQL Database</div>
+            <div class="paper-meta">Taft et al. · Cockroach Labs · SIGMOD 2020</div>
+            <div class="paper-desc">Open-source Spanner-inspired database. Uses Raft for consensus, MVCC for transactions, and a SQL layer on top of a distributed KV store. Describes geo-partitioning for data residency compliance.</div>
+            <a class="paper-link" href="https://dl.acm.org/doi/10.1145/3318464.3386134" target="_blank">→ ACM DL</a>
+          </div>
+          <div class="paper-item">
+            <div class="paper-title">TiDB: A Raft-based HTAP Database</div>
+            <div class="paper-meta">Huang et al. · PingCAP · VLDB 2020</div>
+            <div class="paper-desc">Hybrid Transactional/Analytical Processing (HTAP) database. TiKV (Raft-based distributed KV) + TiFlash (columnar replica). Enables real-time analytics on fresh transactional data without ETL.</div>
+            <a class="paper-link" href="https://www.vldb.org/pvldb/vol13/p3072-huang.pdf" target="_blank">→ Free PDF</a>
+          </div>
+          <div class="paper-item green">
+            <div class="paper-title">Amazon Aurora: Design Considerations for High Throughput Cloud-Native Relational Databases</div>
+            <div class="paper-meta">Verbitski et al. · Amazon · SIGMOD 2017</div>
+            <div class="paper-desc">Aurora's key innovation: the log IS the database. Redo log records are shipped to 6 storage nodes across 3 AZs; storage nodes apply log records lazily. Eliminates the write-amplification of traditional MySQL replication.</div>
+            <a class="paper-link" href="https://dl.acm.org/doi/10.1145/3035918.3056101" target="_blank">→ ACM DL</a>
+          </div>
+          <div class="paper-item pink">
+            <div class="paper-title">F1: A Distributed SQL Database That Scales</div>
+            <div class="paper-meta">Shute et al. · Google · VLDB 2013</div>
+            <div class="paper-desc">Google's distributed SQL database built on Spanner, used for AdWords (billions of dollars). Full SQL, ACID transactions, automatically maintained indexes, optimistic locking. Describes SQL at global scale.</div>
+            <a class="paper-link" href="https://research.google.com/pubs/archive/41344.pdf" target="_blank">→ Free PDF</a>
+          </div>
+          <div class="paper-item">
+            <div class="paper-title">Megastore: Providing Scalable, Highly Available Storage for Interactive Services</div>
+            <div class="paper-meta">Baker et al. · Google · CIDR 2011</div>
+            <div class="paper-desc">Google's database bridging the gap between OLTP and scalable NoSQL. Entity groups (mini-databases with ACID transactions) replicated via Paxos. Precursor to Spanner. Powers Gmail, App Engine.</div>
+            <a class="paper-link" href="https://research.google.com/pubs/archive/36971.pdf" target="_blank">→ Free PDF</a>
+          </div>
+          <div class="paper-item green">
+            <div class="paper-title">CRAQ: Chain Replication with Apportioned Queries</div>
+            <div class="paper-meta">Terrace & Freedman · Princeton · USENIX ATC 2009</div>
+            <div class="paper-desc">Extends chain replication to allow reads at any replica (not just tail), dramatically improving read throughput. Highly relevant for understanding replication strategies in distributed databases.</div>
+            <a class="paper-link" href="https://www.usenix.org/legacy/event/usenix09/tech/full_papers/terrace/terrace.pdf" target="_blank">→ Free PDF</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="body-section">
+        <h3>Sharding, Partitioning & Data Distribution</h3>
+        <div class="paper-list">
+          <div class="paper-item gold">
+            <div class="paper-title">Consistent Hashing and Random Trees</div>
+            <div class="paper-meta">Karger et al. · MIT · STOC 1997</div>
+            <div class="paper-desc">Introduces consistent hashing — when N nodes change to N±1, only 1/N of keys move. Used in every distributed cache and database (Dynamo, Cassandra, Redis Cluster, CDNs).</div>
+            <a class="paper-link" href="https://dl.acm.org/doi/10.1145/258533.258660" target="_blank">→ ACM DL</a>
+          </div>
+          <div class="paper-item">
+            <div class="paper-title">Slicer: Auto-Sharding for Datacenter Applications</div>
+            <div class="paper-meta">Adya et al. · Google · OSDI 2016</div>
+            <div class="paper-desc">Google's automatic sharding system for stateful services. Auto-rebalances load across servers based on observed traffic, avoiding hot shards that plague manual sharding approaches.</div>
+            <a class="paper-link" href="https://www.usenix.org/conference/osdi16/technical-sessions/presentation/adya" target="_blank">→ USENIX</a>
+          </div>
+          <div class="paper-item green">
+            <div class="paper-title">PNUTS: Yahoo!'s Hosted Data Serving Platform</div>
+            <div class="paper-meta">Cooper et al. · Yahoo · VLDB 2008</div>
+            <div class="paper-desc">Yahoo's geographically distributed database. Timeline consistency (per-record sequential writes), regional master per record, pub-sub for replication. Alternative consistency model between Dynamo's AP and Spanner's CP.</div>
+            <a class="paper-link" href="https://dl.acm.org/doi/10.14778/1454159.1454167" target="_blank">→ ACM DL</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="body-section">
+        <h3>Essential Books for Distributed Systems</h3>
+        <div class="arch-grid">
+          <div class="arch-item"><div class="arch-item-label">Kleppmann (2017)</div><div class="arch-item-value">Designing Data-Intensive Applications — The bible</div></div>
+          <div class="arch-item"><div class="arch-item-label">Tanenbaum (2017)</div><div class="arch-item-value">Distributed Systems: Principles and Paradigms</div></div>
+          <div class="arch-item"><div class="arch-item-label">van Steen (2023)</div><div class="arch-item-value">Distributed Systems (free online)</div></div>
+          <div class="arch-item"><div class="arch-item-label">Coulouris (2011)</div><div class="arch-item-value">Distributed Systems: Concepts & Design</div></div>
+          <div class="arch-item"><div class="arch-item-label">Lamport (multiple)</div><div class="arch-item-value">All papers at lamport.azurewebsites.net</div></div>
+          <div class="arch-item"><div class="arch-item-label">Martin Fowler</div><div class="arch-item-value">Patterns of Enterprise Application Architecture</div></div>
+        </div>
+      </div>
+
+      <div class="body-section">
+        <h3>Key Research Venues to Follow</h3>
+        <div class="arch-grid">
+          <div class="arch-item"><div class="arch-item-label">SOSP</div><div class="arch-item-value">ACM Symposium on Operating Systems Principles</div></div>
+          <div class="arch-item"><div class="arch-item-label">OSDI</div><div class="arch-item-value">USENIX Symposium on OS Design & Impl.</div></div>
+          <div class="arch-item"><div class="arch-item-label">VLDB</div><div class="arch-item-value">Very Large Data Bases Conference</div></div>
+          <div class="arch-item"><div class="arch-item-label">SIGMOD</div><div class="arch-item-value">ACM Management of Data Conference</div></div>
+          <div class="arch-item"><div class="arch-item-label">NSDI</div><div class="arch-item-value">USENIX Networked Systems Design & Impl.</div></div>
+          <div class="arch-item"><div class="arch-item-label">EUROSYS</div><div class="arch-item-value">European Conference on Computer Systems</div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div><!-- end section-distributed -->
+
+</main>
+
+<footer>
+  SYSTEM DESIGN RESEARCH HUB · 18 CASE STUDIES + DISTRIBUTED SYSTEMS · COMPILED 2024–2025
+</footer>
+
+<script>
+  // ── Navigation ──
+  function showSection(id) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    const sec = document.getElementById('section-' + id);
+    if (sec) sec.classList.add('active');
+    event.target.classList.add('active');
+    window.scrollTo({top: 0, behavior: 'smooth'});
+  }
+
+  // ── Go to a specific topic card ──
+  function goToTopic(id) {
+    // Switch to "all" section
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('section-all').classList.add('active');
+    document.querySelector('.nav-btn[onclick*="all"]').classList.add('active');
+    setTimeout(() => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        if (!el.classList.contains('open')) {
+          el.classList.add('open');
+        }
+      }
+    }, 100);
+  }
+
+  // ── Toggle card expand ──
+  function toggleCard(header) {
+    const card = header.closest('.topic-card');
+    card.classList.toggle('open');
+  }
+
+  // ── Search ──
+  function filterCards() {
+    const q = document.getElementById('searchBox').value.toLowerCase();
+    const cards = document.querySelectorAll('#overviewGrid .ov-card');
+    cards.forEach(card => {
+      const text = card.textContent.toLowerCase();
+      card.style.display = text.includes(q) ? '' : 'none';
+    });
+  }
+
+  // ── Populate sub-sections ──
+  document.addEventListener('DOMContentLoaded', () => {
+    const srcSection = document.getElementById('section-all');
+
+    const sectionMap = {
+      'section-messaging': ['kafka', 'whatsapp', 'slack', 'bluesky', 'twitter'],
+      'section-storage':   ['s3', 'youtube', 'url-shortener', 'distributed'],
+      'section-platforms': ['google-docs', 'spotify', 'reddit', 'tinder', 'chatgpt'],
+      'section-infra':     ['uber', 'meta-serverless', 'stock-exchange', 'stripe', 'aws-scale'],
+    };
+
+    Object.entries(sectionMap).forEach(([sectionId, cardIds]) => {
+      const dst = document.getElementById(sectionId);
+      if (!dst) return;
+      cardIds.forEach(id => {
+        const el = srcSection.querySelector('#' + id);
+        if (el) {
+          const clone = el.cloneNode(true);
+          // re-attach toggle
+          const hdr = clone.querySelector('.topic-header');
+          hdr.setAttribute('onclick', 'toggleCard(this)');
+          dst.appendChild(clone);
+        }
+      });
+    });
+  });
+</script>
+</body>
+</html>
