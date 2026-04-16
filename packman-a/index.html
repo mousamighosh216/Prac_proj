@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PAC-MAN 3D — A* Edition</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="canvas-container">
+  <div id="hud">
+    <div class="hud-box">
+      <div class="hud-label">SCORE</div>
+      <div class="hud-val" id="score-val">0</div>
+    </div>
+    <div class="hud-box">
+      <div class="hud-label">HIGH SCORE</div>
+      <div class="hud-val" id="hi-val">0</div>
+    </div>
+    <div class="hud-box">
+      <div class="hud-label">LEVEL</div>
+      <div class="hud-val" id="level-val">1</div>
+    </div>
+    <div class="hud-box">
+      <div class="hud-label">LIVES</div>
+      <div id="lives-icons"></div>
+    </div>
+  </div>
+  <div id="overlay">
+    <h1>PAC-MAN</h1>
+    <p>3D EDITION WITH A* GHOSTS</p>
+    <button id="start-btn">START GAME</button>
+    <p class="sub">WASD / ARROW KEYS TO MOVE</p>
+  </div>
+  <div id="msg"></div>
+  <div id="controls-hint">WASD / ARROWS — MOVE &nbsp;|&nbsp; R — RESTART</div>
+</div>
+
+<script>
+// ─── MAZE LAYOUT ───────────────────────────────────────────────────
+// 0=dot, 1=wall, 2=empty, 3=power pellet, 4=ghost house door
+const MAZE_TEMPLATE = [
+  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+  [1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1],
+  [1,3,1,1,0,1,1,1,0,1,0,1,1,1,0,1,1,3,1],
+  [1,0,1,1,0,1,1,1,0,1,0,1,1,1,0,1,1,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,1,1,0,1,0,1,1,1,1,1,0,1,0,1,1,0,1],
+  [1,0,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,0,1],
+  [1,1,1,1,0,1,1,1,2,1,2,1,1,1,0,1,1,1,1],
+  [2,2,2,1,0,1,2,2,2,2,2,2,2,1,0,1,2,2,2],
+  [1,1,1,1,0,1,2,1,1,4,1,1,2,1,0,1,1,1,1],
+  [2,2,2,2,0,2,2,1,2,2,2,1,2,2,0,2,2,2,2],
+  [1,1,1,1,0,1,2,1,1,1,1,1,2,1,0,1,1,1,1],
+  [2,2,2,1,0,1,2,2,2,2,2,2,2,1,0,1,2,2,2],
+  [1,1,1,1,0,1,2,1,1,1,1,1,2,1,0,1,1,1,1],
+  [1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1],
+  [1,0,1,1,0,1,1,1,0,1,0,1,1,1,0,1,1,0,1],
+  [1,3,0,1,0,0,0,0,0,2,0,0,0,0,0,1,0,3,1],
+  [1,1,0,1,0,1,0,1,1,1,1,1,0,1,0,1,0,1,1],
+  [1,0,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,0,1],
+  [1,0,1,1,1,1,1,1,0,1,0,1,1,1,1,1,1,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+];
+
+const ROWS = MAZE_TEMPLATE.length;
+const COLS = MAZE_TEMPLATE[0].length;
+const CELL = 2.2;
+
+// ─── A* PATHFINDING ────────────────────────────────────────────────
+function heuristic(a, b) {
+  return Math.abs(a.r - b.r) + Math.abs(a.c - b.c);
+}
+
+function astar(maze, startR, startC, goalR, goalC) {
+  const rows = maze.length, cols = maze[0].length;
+  const key = (r,c) => r*1000+c;
+  const open = new Map();
+  const closed = new Set();
+  const gScore = new Map();
+  const parent = new Map();
+
+  const start = {r:startR, c:startC};
+  gScore.set(key(startR,startC), 0);
+  open.set(key(startR,startC), {node:start, f:heuristic(start,{r:goalR,c:goalC})});
+
+  let iterations = 0;
+  while(open.size > 0 && iterations++ < 500) {
+    let bestKey = null, bestF = Infinity;
+    for(const [k,v] of open) { if(v.f < bestF){bestF=v.f;bestKey=k;} }
+    const {node:cur} = open.get(bestKey);
+    open.delete(bestKey);
+    closed.add(bestKey);
+
+    if(cur.r === goalR && cur.c === goalC) {
+      const path = [];
+      let k = key(goalR, goalC);
+      while(parent.has(k)) {
+        const n = parent.get(k);
+        path.unshift(n);
+        k = key(n.r, n.c);
+      }
+      return path;
+    }
+
+    const dirs = [{r:-1,c:0},{r:1,c:0},{r:0,c:-1},{r:0,c:1}];
+    for(const d of dirs) {
+      const nr=cur.r+d.r, nc=cur.c+d.c;
+      if(nr<0||nr>=rows||nc<0||nc>=cols) continue;
+      const cell = maze[nr][nc];
+      if(cell===1) continue;
+      const nk = key(nr,nc);
+      if(closed.has(nk)) continue;
+      const ng = (gScore.get(key(cur.r,cur.c))||0)+1;
+      if(!gScore.has(nk)||ng<gScore.get(nk)) {
+        gScore.set(nk, ng);
+        parent.set(nk, {r:cur.r,c:cur.c});
+        open.set(nk, {node:{r:nr,c:nc}, f:ng+heuristic({r:nr,c:nc},{r:goalR,c:goalC})});
+      }
+    }
+  }
+  return [];
+}
+
+// ─── GAME STATE ────────────────────────────────────────────────────
+let score=0, hiScore=0, level=1, lives=3, gameRunning=false;
+let pacDir={r:0,c:1}, pacNextDir={r:0,c:1};
+let pacPos={r:16,c:9};
+let maze, dots, powerDots;
+let frightTimer=0, FRIGHT_DURATION=8000;
+let lastTime=0, accumulator=0;
+const STEP_MS=200;
+let ghostEatMultiplier=1;
+
+const GHOST_CONFIGS=[
+  {name:'Blinky',color:0xff2222,scatterR:0,scatterC:COLS-1,startR:10,startC:9},
+  {name:'Pinky', color:0xff88cc,scatterR:0,scatterC:0,startR:10,startC:9},
+  {name:'Inky',  color:0x44ffff,scatterR:ROWS-1,scatterC:COLS-1,startR:10,startC:9},
+  {name:'Clyde', color:0xffaa22,scatterR:ROWS-1,scatterC:0,startR:10,startC:9},
+];
+
+let ghosts=[];
+
+// ─── THREE.JS SETUP ────────────────────────────────────────────────
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+document.getElementById('canvas-container').prepend(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x000008);
+scene.fog = new THREE.Fog(0x000008, 30, 90);
+
+// Camera
+const W=COLS*CELL, H=ROWS*CELL;
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.5, 200);
+camera.position.set(W/2-CELL/2, 28, H/2+10);
+camera.lookAt(W/2, 0, H/2);
+
+// Lights
+const ambient = new THREE.AmbientLight(0x111133,1.2);
+scene.add(ambient);
+
+const dirLight = new THREE.DirectionalLight(0xffffff,0.6);
+dirLight.position.set(20,40,20);
+dirLight.castShadow=true;
+dirLight.shadow.mapSize.width=1024;
+dirLight.shadow.mapSize.height=1024;
+scene.add(dirLight);
+
+const bluePoint = new THREE.PointLight(0x0033ff,2,40);
+bluePoint.position.set(W/2,10,H/2);
+scene.add(bluePoint);
+
+// ─── BUILD MAZE MESHES ─────────────────────────────────────────────
+const wallMat = new THREE.MeshStandardMaterial({color:0x0044ff,roughness:0.6,metalness:0.2,emissive:0x001166});
+const floorMat = new THREE.MeshStandardMaterial({color:0x050510,roughness:1});
+const dotMat = new THREE.MeshStandardMaterial({color:0xffeeaa,emissive:0xffcc66,emissiveIntensity:0.8,roughness:0.3});
+const powerMat = new THREE.MeshStandardMaterial({color:0xffffff,emissive:0xffffff,emissiveIntensity:1.5,roughness:0.1});
+
+let wallGroup, dotGroup, powerGroup;
+
+function buildMaze() {
+  if(wallGroup) scene.remove(wallGroup);
+  if(dotGroup) scene.remove(dotGroup);
+  if(powerGroup) scene.remove(powerGroup);
+
+  wallGroup = new THREE.Group();
+  dotGroup = new THREE.Group();
+  powerGroup = new THREE.Group();
+
+  maze = MAZE_TEMPLATE.map(row=>[...row]);
+  dots = [];
+  powerDots = [];
+
+  const wallGeo = new THREE.BoxGeometry(CELL,1.5,CELL);
+  const dotGeo = new THREE.SphereGeometry(0.18,8,8);
+  const powerGeo = new THREE.SphereGeometry(0.4,10,10);
+
+  // Floor plane
+  const floorGeo = new THREE.PlaneGeometry(W+2, H+2);
+  const floor = new THREE.Mesh(floorGeo, floorMat);
+  floor.rotation.x = -Math.PI/2;
+  floor.position.set(W/2-CELL/2,-0.75,H/2-CELL/2);
+  floor.receiveShadow=true;
+  scene.add(floor);
+
+  for(let r=0;r<ROWS;r++){
+    for(let c=0;c<COLS;c++){
+      const x=c*CELL, z=r*CELL;
+      const cell=maze[r][c];
+      if(cell===1){
+        const m=new THREE.Mesh(wallGeo,wallMat);
+        m.position.set(x,0,z);
+        m.castShadow=true;
+        m.receiveShadow=true;
+        wallGroup.add(m);
+      } else if(cell===0){
+        const m=new THREE.Mesh(dotGeo,dotMat);
+        m.position.set(x,0,z);
+        dotGroup.add(m);
+        dots.push({r,c,mesh:m,active:true});
+      } else if(cell===3){
+        const m=new THREE.Mesh(powerGeo,powerMat);
+        m.position.set(x,0,z);
+        powerGroup.add(m);
+        powerDots.push({r,c,mesh:m,active:true});
+      }
+    }
+  }
+  scene.add(wallGroup);
+  scene.add(dotGroup);
+  scene.add(powerGroup);
+}
+
+// ─── PAC-MAN MESH ──────────────────────────────────────────────────
+let pacMesh, pacGroup;
+function buildPacman() {
+  if(pacGroup) scene.remove(pacGroup);
+  pacGroup = new THREE.Group();
+
+  const bodyGeo = new THREE.SphereGeometry(0.75,20,20,0,Math.PI*2,0,Math.PI);
+  const bodyMat = new THREE.MeshStandardMaterial({color:0xffe000,emissive:0xbb8800,emissiveIntensity:0.3,roughness:0.4,metalness:0.1});
+  pacMesh = new THREE.Mesh(bodyGeo,bodyMat);
+  pacMesh.rotation.x = -Math.PI/2;
+  pacMesh.castShadow=true;
+  pacGroup.add(pacMesh);
+
+  // Top half
+  const topGeo = new THREE.SphereGeometry(0.75,20,20,0,Math.PI*2,Math.PI,Math.PI);
+  const topMesh = new THREE.Mesh(topGeo,bodyMat);
+  topMesh.rotation.x = Math.PI/2;
+  topMesh.castShadow=true;
+  pacGroup.add(topMesh);
+
+  scene.add(pacGroup);
+  syncPacPos();
+}
+
+function syncPacPos() {
+  pacGroup.position.set(pacPos.c*CELL, 0.3, pacPos.r*CELL);
+}
+
+// ─── GHOST MESHES ──────────────────────────────────────────────────
+function buildGhosts() {
+  ghosts.forEach(g=>{ if(g.group) scene.remove(g.group); });
+  ghosts = GHOST_CONFIGS.map((cfg,i)=>{
+    const group = new THREE.Group();
+
+    const mat = new THREE.MeshStandardMaterial({color:cfg.color,emissive:cfg.color,emissiveIntensity:0.4,roughness:0.5});
+    const frightMat = new THREE.MeshStandardMaterial({color:0x1111dd,emissive:0x0000aa,emissiveIntensity:0.5,roughness:0.5});
+
+    // Body: capsule-like shape
+    const bodyGeo = new THREE.CylinderGeometry(0.6,0.6,0.7,16);
+    const body = new THREE.Mesh(bodyGeo,mat);
+    body.position.y=0;
+    group.add(body);
+
+    // Dome
+    const domeGeo = new THREE.SphereGeometry(0.6,16,8,0,Math.PI*2,0,Math.PI/2);
+    const dome = new THREE.Mesh(domeGeo,mat);
+    dome.position.y=0.35;
+    group.add(dome);
+
+    // Eyes
+    const eyeGeo = new THREE.SphereGeometry(0.15,8,8);
+    const eyeMat = new THREE.MeshStandardMaterial({color:0xffffff,emissive:0xffffff,emissiveIntensity:0.5});
+    const pupilMat = new THREE.MeshStandardMaterial({color:0x0000cc,emissive:0x000088});
+    for(const side of[-1,1]){
+      const eye = new THREE.Mesh(eyeGeo,eyeMat);
+      eye.position.set(side*0.25,0.35,0.5);
+      group.add(eye);
+      const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.08,6,6),pupilMat);
+      pupil.position.set(side*0.25,0.35,0.62);
+      group.add(pupil);
+    }
+
+    scene.add(group);
+
+    const spawnR = cfg.startR + (i*0);
+    const spawnC = cfg.startC + (i%2===0?-1:1);
+
+    return {
+      name:cfg.name,
+      mat,frightMat,
+      group,
+      meshes:[body,dome],
+      r:spawnR, c:spawnC,
+      scatterR:cfg.scatterR, scatterC:cfg.scatterC,
+      path:[],
+      stepAcc:0,
+      stepDelay:STEP_MS + i*40,
+      frightened:false,
+      eaten:false,
+      releaseDelay: i*2000,
+      released: i===0,
+      color:cfg.color,
+    };
+  });
+  updateGhostPositions();
+}
+
+function updateGhostPositions() {
+  ghosts.forEach(g=>{
+    g.group.position.set(g.c*CELL,0.35,g.r*CELL);
+  });
+}
+
+// ─── HUD ───────────────────────────────────────────────────────────
+function updateHUD() {
+  document.getElementById('score-val').textContent=score;
+  document.getElementById('hi-val').textContent=hiScore;
+  document.getElementById('level-val').textContent=level;
+  const lc=document.getElementById('lives-icons');
+  lc.innerHTML='';
+  for(let i=0;i<lives;i++){
+    const d=document.createElement('div');
+    d.className='life-dot';
+    lc.appendChild(d);
+  }
+}
+
+// ─── SHOW MESSAGE ──────────────────────────────────────────────────
+let msgTimeout;
+function showMsg(text, dur=1500) {
+  const el=document.getElementById('msg');
+  el.textContent=text;
+  el.classList.add('show');
+  clearTimeout(msgTimeout);
+  msgTimeout=setTimeout(()=>el.classList.remove('show'),dur);
+}
+
+// ─── INPUT ─────────────────────────────────────────────────────────
+const keys={};
+window.addEventListener('keydown',e=>{
+  keys[e.key]=true;
+  if(!gameRunning) return;
+  const map={
+    'ArrowUp':{r:-1,c:0},'w':{r:-1,c:0},'W':{r:-1,c:0},
+    'ArrowDown':{r:1,c:0},'s':{r:1,c:0},'S':{r:1,c:0},
+    'ArrowLeft':{r:0,c:-1},'a':{r:0,c:-1},'A':{r:0,c:-1},
+    'ArrowRight':{r:0,c:1},'d':{r:0,c:1},'D':{r:0,c:1},
+  };
+  if(map[e.key]) {
+    pacNextDir=map[e.key];
+    e.preventDefault();
+  }
+  if(e.key==='r'||e.key==='R') restartGame();
+});
+
+// ─── COLLISION / MOVEMENT ──────────────────────────────────────────
+function canMove(r,c) {
+  if(r<0||r>=ROWS||c<0||c>=COLS) return true; // wrap
+  const cell=maze[r][c];
+  return cell!==1 && cell!==4;
+}
+
+function wrapPos(r,c) {
+  if(r<0) r=ROWS-1;
+  if(r>=ROWS) r=0;
+  if(c<0) c=COLS-1;
+  if(c>=COLS) c=0;
+  return {r,c};
+}
+
+function movePac() {
+  // Try next direction
+  let nr=pacPos.r+pacNextDir.r, nc=pacPos.c+pacNextDir.c;
+  const wn=wrapPos(nr,nc);
+  if(canMove(wn.r,wn.c)) {
+    pacDir={...pacNextDir};
+  }
+  // Move in current direction
+  nr=pacPos.r+pacDir.r; nc=pacPos.c+pacDir.c;
+  const wp=wrapPos(nr,nc);
+  if(canMove(wp.r,wp.c)) {
+    pacPos={...wp};
+  }
+
+  // Rotate pac-man to face direction
+  if(pacDir.c===1) pacGroup.rotation.y=Math.PI/2;
+  else if(pacDir.c===-1) pacGroup.rotation.y=-Math.PI/2;
+  else if(pacDir.r===-1) pacGroup.rotation.y=Math.PI;
+  else if(pacDir.r===1) pacGroup.rotation.y=0;
+
+  syncPacPos();
+  checkDots();
+}
+
+function checkDots() {
+  for(const d of dots) {
+    if(d.active && d.r===pacPos.r && d.c===pacPos.c) {
+      d.active=false;
+      d.mesh.visible=false;
+      score+=10;
+      updateHUD();
+    }
+  }
+  for(const p of powerDots) {
+    if(p.active && p.r===pacPos.r && p.c===pacPos.c) {
+      p.active=false;
+      p.mesh.visible=false;
+      score+=50;
+      frightenGhosts();
+      updateHUD();
+    }
+  }
+  // Check level complete
+  const remaining = dots.filter(d=>d.active).length + powerDots.filter(p=>p.active).length;
+  if(remaining===0) levelComplete();
+}
+
+function frightenGhosts() {
+  frightTimer=FRIGHT_DURATION;
+  ghostEatMultiplier=1;
+  ghosts.forEach(g=>{
+    if(!g.eaten) {
+      g.frightened=true;
+      g.meshes.forEach(m=>m.material=g.frightMat);
+    }
+  });
+  showMsg('POWER UP!',2000);
+}
+
+function moveGhost(g, dt) {
+  if(!g.released) return;
+  g.stepAcc+=dt;
+  if(g.stepAcc<g.stepDelay) return;
+  g.stepAcc=0;
+
+  let targetR, targetC;
+  if(g.frightened) {
+    // Random movement when frightened
+    const dirs=[{r:-1,c:0},{r:1,c:0},{r:0,c:-1},{r:0,c:1}];
+    const valid=dirs.filter(d=>{
+      const nr=g.r+d.r,nc=g.c+d.c;
+      return nr>=0&&nr<ROWS&&nc>=0&&nc<COLS&&maze[nr][nc]!==1&&maze[nr][nc]!==4;
+    });
+    if(valid.length>0) {
+      const d=valid[Math.floor(Math.random()*valid.length)];
+      g.r+=d.r; g.c+=d.c;
+    }
+  } else {
+    // A* to pac-man (chase) or scatter corner
+    const chaseProb = Math.min(0.9, 0.5+level*0.1);
+    if(Math.random()<chaseProb) {
+      targetR=pacPos.r; targetC=pacPos.c;
+    } else {
+      targetR=g.scatterR; targetC=g.scatterC;
+    }
+
+    if(!g.path||g.path.length===0) {
+      g.path=astar(maze,g.r,g.c,targetR,targetC);
+    }
+
+    if(g.path&&g.path.length>0) {
+      const next=g.path.shift();
+      if(maze[next.r][next.c]!==1) {
+        g.r=next.r; g.c=next.c;
+      } else {
+        g.path=[];
+      }
+    }
+  }
+  g.group.position.set(g.c*CELL,0.35,g.r*CELL);
+}
+
+function checkGhostCollision() {
+  for(const g of ghosts) {
+    if(!g.released) continue;
+    if(g.r===pacPos.r && g.c===pacPos.c) {
+      if(g.frightened) {
+        // Eat ghost
+        score+=200*ghostEatMultiplier;
+        ghostEatMultiplier*=2;
+        g.frightened=false;
+        g.eaten=true;
+        g.meshes.forEach(m=>m.material=g.mat);
+        g.r=10; g.c=9;
+        g.path=[];
+        showMsg(`+${200*(ghostEatMultiplier/2)} PTS!`,1000);
+        updateHUD();
+        setTimeout(()=>{g.eaten=false;},3000);
+      } else if(!g.eaten) {
+        // Pac-man dies
+        lives--;
+        updateHUD();
+        if(lives<=0) {
+          gameOver();
+        } else {
+          showMsg('OUCH!',1500);
+          resetPositions();
+        }
+      }
+    }
+  }
+}
+
+function resetPositions() {
+  pacPos={r:16,c:9};
+  pacDir={r:0,c:1};
+  pacNextDir={r:0,c:1};
+  syncPacPos();
+  ghosts.forEach((g,i)=>{
+    g.r=GHOST_CONFIGS[i].startR;
+    g.c=GHOST_CONFIGS[i].startC+(i%2===0?-1:1);
+    g.path=[];
+    g.frightened=false;
+    g.eaten=false;
+    g.meshes.forEach(m=>m.material=g.mat);
+    g.group.position.set(g.c*CELL,0.35,g.r*CELL);
+  });
+  frightTimer=0;
+}
+
+function levelComplete() {
+  level++;
+  showMsg(`LEVEL ${level}!`,2000);
+  FRIGHT_DURATION=Math.max(3000,8000-level*500);
+  setTimeout(()=>{
+    buildMaze();
+    resetPositions();
+  },2000);
+}
+
+function gameOver() {
+  gameRunning=false;
+  if(score>hiScore) hiScore=score;
+  updateHUD();
+  const ov=document.getElementById('overlay');
+  ov.innerHTML=`
+    <h1>GAME OVER</h1>
+    <p>SCORE: ${score}</p>
+    <p style="font-size:10px;color:#888">HIGH SCORE: ${hiScore}</p>
+    <button id="start-btn" onclick="restartGame()" style="font-family:'Press Start 2P',monospace;font-size:14px;padding:14px 36px;background:transparent;border:2px solid #ffe000;color:#ffe000;cursor:pointer;letter-spacing:2px;transition:all .2s;text-shadow:0 0 10px #ffe000">PLAY AGAIN</button>
+  `;
+  ov.classList.remove('hidden');
+}
+
+// ─── GHOST RELEASE TIMER ───────────────────────────────────────────
+let releaseTimers=[];
+function setupGhostRelease() {
+  releaseTimers.forEach(t=>clearTimeout(t));
+  releaseTimers=[];
+  ghosts.forEach((g,i)=>{
+    g.released = i===0;
+    if(i>0) {
+      const t=setTimeout(()=>{ g.released=true; },g.releaseDelay);
+      releaseTimers.push(t);
+    }
+  });
+}
+
+// ─── INIT / RESTART ────────────────────────────────────────────────
+function initGame() {
+  score=0; level=1; lives=3;
+  pacPos={r:16,c:9};
+  pacDir={r:0,c:1};
+  pacNextDir={r:0,c:1};
+  frightTimer=0;
+  ghostEatMultiplier=1;
+  buildMaze();
+  buildPacman();
+  buildGhosts();
+  setupGhostRelease();
+  updateHUD();
+}
+
+function restartGame() {
+  document.getElementById('overlay').classList.add('hidden');
+  initGame();
+  gameRunning=true;
+  showMsg('GO!',1000);
+}
+
+document.getElementById('start-btn').onclick=restartGame;
+
+// ─── ANIMATION ─────────────────────────────────────────────────────
+let pacMouthOpen=true, pacMouthTimer=0;
+let powerPulse=0;
+
+function animate(ts) {
+  requestAnimationFrame(animate);
+
+  const dt = Math.min(ts-lastTime, 50);
+  lastTime=ts;
+
+  if(gameRunning) {
+    accumulator+=dt;
+
+    // Pac-man movement steps
+    if(accumulator>=STEP_MS) {
+      accumulator-=STEP_MS;
+      movePac();
+      checkGhostCollision();
+    }
+
+    // Ghost movement (each ghost manages own timing)
+    ghosts.forEach(g=>moveGhost(g,dt));
+    checkGhostCollision();
+
+    // Fright timer
+    if(frightTimer>0) {
+      frightTimer-=dt;
+      if(frightTimer<=0) {
+        frightTimer=0;
+        ghosts.forEach(g=>{
+          g.frightened=false;
+          g.meshes.forEach(m=>m.material=g.mat);
+        });
+      }
+      // Flash warning
+      if(frightTimer<3000 && Math.floor(frightTimer/200)%2===0) {
+        ghosts.forEach(g=>{
+          if(g.frightened) g.meshes.forEach(m=>{ m.material.color.setHex(0xffffff); });
+        });
+      } else {
+        ghosts.forEach(g=>{
+          if(g.frightened) g.meshes.forEach(m=>{ m.material.color.setHex(0x1111dd); });
+        });
+      }
+    }
+
+    // Pac-man mouth animation
+    pacMouthTimer+=dt;
+    if(pacMouthTimer>150){
+      pacMouthTimer=0;
+      pacMouthOpen=!pacMouthOpen;
+    }
+    pacGroup.scale.z = pacMouthOpen?1:0.85;
+
+    // Power dot pulse
+    powerPulse+=dt*0.003;
+    powerDots.forEach(p=>{
+      if(p.active) {
+        const s=0.8+Math.sin(powerPulse)*0.3;
+        p.mesh.scale.setScalar(s);
+      }
+    });
+
+    // Camera follow pac-man (subtle)
+    const tx=pacPos.c*CELL, tz=pacPos.r*CELL;
+    camera.position.x += (tx - camera.position.x)*0.02;
+  }
+
+  renderer.render(scene,camera);
+}
+
+// ─── RESIZE ────────────────────────────────────────────────────────
+window.addEventListener('resize',()=>{
+  camera.aspect=window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth,window.innerHeight);
+});
+
+// ─── START ─────────────────────────────────────────────────────────
+initGame();
+requestAnimationFrame(animate);
+</script>
+</body>
+</html>
